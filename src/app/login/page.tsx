@@ -21,6 +21,23 @@ import { useApp } from "@/context/AppContext";
 
 type AuthMode = "signin" | "signup" | "reset";
 
+function formatAuthError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes("invalid login credentials")) {
+    return "Incorrect email or password. Please check your details and try again.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Your email is not verified yet. Please check your inbox and click the verification link first.";
+  }
+  if (lower.includes("already registered")) {
+    return "An account with this email already exists. Please sign in instead.";
+  }
+  if (lower.includes("failed to fetch") || lower.includes("network")) {
+    return "Network error while contacting the authentication service. Please check your connection.";
+  }
+  return msg;
+}
+
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,7 +53,11 @@ function LoginFormContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(
-    callbackError ? "Authentication link expired or invalid. Please try again." : null
+    callbackError === "link_expired"
+      ? "Your verification or reset link has expired or was already used. Please sign in or request a new link."
+      : callbackError
+      ? "Authentication link is invalid or expired. Please try again."
+      : null
   );
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
@@ -86,7 +107,7 @@ function LoginFormContent() {
           password,
         });
         if (error) {
-          setErrorMsg(error.message);
+          setErrorMsg(formatAuthError(error.message));
         } else {
           showToast("Signed in successfully", undefined, "success");
           router.push(nextPath);
@@ -107,7 +128,7 @@ function LoginFormContent() {
           },
         });
         if (error) {
-          setErrorMsg(error.message);
+          setErrorMsg(formatAuthError(error.message));
         } else {
           setInfoMsg(
             lang === "hi"
@@ -123,7 +144,7 @@ function LoginFormContent() {
           redirectTo: `${window.location.origin}/auth/reset-password`,
         });
         if (error) {
-          setErrorMsg(error.message);
+          setErrorMsg(formatAuthError(error.message));
         } else {
           setInfoMsg(
             "Password reset instructions have been sent to your email address."
@@ -131,6 +152,12 @@ function LoginFormContent() {
           showToast("Reset email sent", undefined, "info");
         }
       }
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error
+          ? formatAuthError(err.message)
+          : "Unexpected error during authentication. Please try again."
+      );
     } finally {
       setLoading(false);
     }

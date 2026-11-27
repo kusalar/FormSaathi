@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -13,8 +14,34 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionInvalid, setSessionInvalid] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) {
+      const t = setTimeout(() => {
+        setSessionInvalid(true);
+        setCheckingSession(false);
+      }, 0);
+      return () => clearTimeout(t);
+    }
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (error || !data.session) {
+          setSessionInvalid(true);
+        }
+        setCheckingSession(false);
+      })
+      .catch(() => {
+        setSessionInvalid(true);
+        setCheckingSession(false);
+      });
+  }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,12 +65,18 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        setErrorMsg(error.message);
+        setErrorMsg(
+          error.message.toLowerCase().includes("session")
+            ? "Your password reset link has expired. Please request a new reset email."
+            : error.message
+        );
       } else {
         setDone(true);
         showToast("Password updated", "You can now continue with your account.", "success");
         setTimeout(() => router.push("/profile"), 1500);
       }
+    } catch {
+      setErrorMsg("Network error while updating password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -69,7 +102,27 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        {done ? (
+        {checkingSession ? (
+          <p className="text-center text-xs text-slate-500 py-4">
+            Verifying reset link...
+          </p>
+        ) : sessionInvalid ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>
+                This password reset link is invalid or has expired. Please request a
+                new reset email.
+              </span>
+            </div>
+            <Link
+              href="/login"
+              className="block w-full text-center py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-sm shadow-md"
+            >
+              Back to Sign In
+            </Link>
+          </div>
+        ) : done ? (
           <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-900 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Password updated! Redirecting to your profile...</span>

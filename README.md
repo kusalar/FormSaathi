@@ -98,6 +98,29 @@ npm run dev
 - **Explicit Migration**: If a signed-in user has existing `localStorage` data, FormSaathi offers an explicit one-time **Import to Account / Dismiss** banner and never silently overwrites cloud data.
 - **Demo Mode**: Without Supabase credentials, FormSaathi runs cleanly in local browser demo mode using `localStorage` and clearly labelled `DEMONSTRATION` scholarships.
 
+### Manual Authentication & Database Testing Checklist
+1. **Run SQL Migrations in Order**:
+   - First run `supabase/migrations/0001_formsaathi_schema.sql` in **Supabase Dashboard → SQL Editor**.
+   - Then run `supabase/migrations/0002_extended_student_profile.sql`.
+2. **Configure Supabase Site URL & Redirect URLs** (**Authentication → URL Configuration**):
+   - Set **Site URL** to your production Vercel domain (`https://your-vercel-domain.vercel.app`) or `http://localhost:3000` for local testing.
+   - Add local Redirect URLs:
+     - `http://localhost:3000/auth/callback`
+     - `http://localhost:3000/auth/reset-password`
+   - Add production Redirect URLs using your **actual Vercel domain**:
+     - `https://your-vercel-domain.vercel.app/auth/callback`
+     - `https://your-vercel-domain.vercel.app/auth/reset-password`
+3. **Configure Local Environment Variables**: Ensure `.env.local` has `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+4. **Start the Application**: Run `npm run dev` and open `http://localhost:3000`.
+5. **Register a New Account**: Go to `/login` → **Sign Up** with Full Name, Email, and Password.
+6. **Verify Email**: Open the confirmation email and click the verification link (redirects via `/auth/callback` to `/profile`).
+7. **Complete Student Profile**: Fill in College, Degree, Branch, Year, Income, State, Skills, and Categories, then click **Save Profile**.
+8. **Refresh & Confirm Persistence**: Refresh `/profile` and verify all fields load from Supabase.
+9. **Sign Out & Sign In Again**: Click **Sign Out** (returns to `/`), then sign back in and verify your profile restores.
+10. **Test Password Reset**: On `/login`, click **Forgot password?**, open the email link (`/auth/reset-password`), and set a new password.
+11. **Test Local Demo Data Import**: While signed out, fill in some profile details, then sign in with a fresh account and verify the **Import to Account / Dismiss** banner appears.
+12. **Test Two Separate Accounts (RLS Isolation)**: Sign in as **User A** in a normal browser window and **User B** in an Incognito/Private window; verify User B cannot see User A's profile, saved opportunities, or checklist.
+
 Open **`http://localhost:3000`** in Chrome or Edge.
 
 ### Production Build Check
