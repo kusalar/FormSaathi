@@ -135,6 +135,10 @@ export interface Opportunity {
   lastVerifiedAt: string;
   status: OpportunityStatus;
   experienceRequired?: string;
+  employmentType?: string;
+  locationRestrictions?: string[];
+  hasAcademicCriteria?: boolean;
+  lastFetchedAt?: string;
 }
 
 export interface ApplicationTrackingItem {

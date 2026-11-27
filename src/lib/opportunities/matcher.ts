@@ -179,8 +179,28 @@ export function matchOpportunity(
     }
   }
 
-  // 7. State / Location (weight 15 when restricted, 5 bonus when matching)
-  if (opp.location !== "All India" && opp.workMode !== "Remote") {
+  // 7. State / Location (weight 15 when restricted, or 20 for live locationRestrictions)
+  if (opp.hasAcademicCriteria === false) {
+    verificationNeeded.push("Academic eligibility (degree, branch & year not provided by source)");
+    totalWeight += 20;
+    const restrictions = opp.locationRestrictions || [];
+    if (restrictions.length === 0) {
+      earnedWeight += 20;
+      reasons.push("Worldwide remote availability (accepts India)");
+    } else {
+      const indiaOk = restrictions.some((r) => {
+        const rl = r.toLowerCase();
+        return rl === "india" || rl === "in" || rl === "worldwide";
+      });
+      if (indiaOk) {
+        earnedWeight += 20;
+        reasons.push(`Location compatible (${restrictions.join(", ")})`);
+      } else {
+        hardFail = true;
+        gaps.push(`Location restricted to ${restrictions.join(", ")}`);
+      }
+    }
+  } else if (opp.location !== "All India" && opp.workMode !== "Remote") {
     totalWeight += 15;
     if (!profile.state) {
       verificationNeeded.push("State / Location");
@@ -195,24 +215,24 @@ export function matchOpportunity(
     }
   }
 
-  // 8. Skills Overlap (Internships & Jobs, weight 25)
-  if (opp.requiredSkills.length > 0) {
+  // 8. Skills & Branch Keyword Overlap (Internships & Jobs, weight 25)
+  if (opp.requiredSkills.length > 0 || opp.hasAcademicCriteria === false) {
     totalWeight += 25;
     const userSkills = tokenizeSkills(profile.skills);
-    if (userSkills.length === 0) {
-      verificationNeeded.push("Skills");
+    const branchTokens = normalizeBranch(profile.branch || "");
+    const searchTokens = Array.from(new Set([...userSkills, ...branchTokens]));
+
+    if (searchTokens.length === 0) {
+      verificationNeeded.push("Skills & Branch");
     } else {
-      const matchedSkills = opp.requiredSkills.filter((req) =>
-        userSkills.some(
-          (us) => us === req.toLowerCase() || us.includes(req.toLowerCase()) || req.toLowerCase().includes(us)
-        )
-      );
-      if (matchedSkills.length > 0) {
-        const ratio = Math.min(1, matchedSkills.length / Math.min(3, opp.requiredSkills.length));
+      const oppHaystack = `${opp.title} ${opp.description} ${opp.requiredSkills.join(" ")}`.toLowerCase();
+      const matchedTokens = searchTokens.filter((tok) => oppHaystack.includes(tok));
+      if (matchedTokens.length > 0) {
+        const ratio = Math.min(1, matchedTokens.length / 2);
         earnedWeight += Math.round(25 * ratio);
-        reasons.push(`Skills match: ${matchedSkills.slice(0, 3).join(", ")}`);
-      } else {
-        gaps.push(`Skills needed: ${opp.requiredSkills.slice(0, 3).join(", ")}`);
+        reasons.push(`Matches your profile keywords: ${matchedTokens.slice(0, 3).join(", ")}`);
+      } else if (opp.requiredSkills.length > 0) {
+        gaps.push(`Listing tags: ${opp.requiredSkills.slice(0, 3).join(", ")}`);
       }
     }
   }

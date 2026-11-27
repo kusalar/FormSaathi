@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -17,11 +17,13 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
+  Radio,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS, evaluateEligibility } from "@/lib/scholarships";
 import { DEMO_OPPORTUNITIES } from "@/lib/opportunities/sources";
 import { matchOpportunity } from "@/lib/opportunities/matcher";
+import { Opportunity } from "@/types";
 import { t, UI_TEXT } from "@/lib/i18n";
 import { AssistantWidget } from "@/components/AssistantWidget";
 
@@ -41,12 +43,65 @@ export default function HomePage() {
 
   const [tipIndex, setTipIndex] = useState(0);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [liveInternship, setLiveInternship] = useState<{
+    opp: Opportunity | null;
+    isLive: boolean;
+    loading: boolean;
+    error: string | null;
+    fetchedAt: string | null;
+  }>({
+    opp: null,
+    isLive: false,
+    loading: true,
+    error: null,
+    fetchedAt: null,
+  });
 
-  const topInternship = DEMO_OPPORTUNITIES.filter(
-    (o) => o.category === "internship" && o.status === "active"
-  )
-    .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
-    .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+  useEffect(() => {
+    let active = true;
+    fetch("/api/internships?country=IN&page=1")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!active) return;
+        if (!ok || !data.ok || !Array.isArray(data.opportunities) || data.opportunities.length === 0) {
+          setLiveInternship({
+            opp: null,
+            isLive: false,
+            loading: false,
+            error: data.error || "Live internship provider temporarily unavailable.",
+            fetchedAt: data.lastSuccessfulFetchAt || null,
+          });
+          return;
+        }
+        const best = (data.opportunities as Opportunity[])
+          .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
+          .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+        setLiveInternship({
+          opp: best?.opp || data.opportunities[0],
+          isLive: true,
+          loading: false,
+          error: null,
+          fetchedAt: data.fetchedAt || null,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setLiveInternship({
+          opp: null,
+          isLive: false,
+          loading: false,
+          error: "Live internship provider temporarily unavailable.",
+          fetchedAt: null,
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [profile]);
+
+  const topInternshipMatch = liveInternship.opp
+    ? matchOpportunity(profile, liveInternship.opp)
+    : null;
 
   const topJob = DEMO_OPPORTUNITIES.filter(
     (o) => o.category === "job" && o.status === "active"
@@ -401,12 +456,12 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Personalised Internships, Jobs & Saved Summary */}
+          {/* Personalised Internships (Live) & Jobs (Demo) */}
           <section className="rounded-3xl bg-white border border-indigo-100 shadow-sm p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-indigo-950">
-                  Personalised Internships &amp; Jobs (Demo)
+                  Personalised Internships &amp; Jobs
                 </h2>
                 <p className="text-xs text-slate-500">
                   Saved: {savedScholarships.length} • Tracked Applications: {trackedCount}
@@ -422,39 +477,63 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {topInternship && (
-                <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-4 flex flex-col justify-between">
+              {liveInternship.loading ? (
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4 animate-pulse space-y-2">
+                  <div className="h-4 w-32 bg-indigo-100 rounded" />
+                  <div className="h-4 w-3/4 bg-indigo-100 rounded" />
+                  <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                </div>
+              ) : liveInternship.isLive && liveInternship.opp && topInternshipMatch ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 uppercase">
-                        Recommended Internship
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                        <Radio className="w-3 h-3" />
+                        LIVE • Himalayas
                       </span>
-                      <span className="text-xs font-extrabold text-emerald-700">
-                        {topInternship.match.percentage}% Match
+                      <span className="text-xs font-extrabold text-indigo-700">
+                        {topInternshipMatch.percentage}% Match
                       </span>
                     </div>
                     <h3 className="text-sm font-bold text-indigo-950">
-                      {topInternship.opp.title}
+                      {liveInternship.opp.title}
                     </h3>
                     <p className="text-xs text-slate-600 mt-0.5">
-                      {topInternship.opp.organisation} • {topInternship.opp.workMode}
+                      {liveInternship.opp.organisation} • {liveInternship.opp.workMode}
                     </p>
                   </div>
                   <Link
                     href="/opportunities"
                     className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
                   >
-                    View Match Details <ArrowRight className="w-3.5 h-3.5" />
+                    View Live Internships <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4 flex flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-rose-800">
+                      Live Internships Temporarily Unavailable
+                    </p>
+                    <p className="text-[11px] text-rose-700 mt-1">
+                      {liveInternship.error || "Unable to reach Himalayas right now."}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    Open Opportunities Page <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               )}
 
               {topJob && (
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 flex flex-col justify-between">
+                <div className="rounded-2xl border border-amber-200/80 bg-amber-50/30 p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
-                        Recommended Job
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">
+                        DEMO • Recommended Job
                       </span>
                       <span className="text-xs font-extrabold text-emerald-700">
                         {topJob.match.percentage}% Match
