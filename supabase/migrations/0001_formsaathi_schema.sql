@@ -18,6 +18,7 @@ create table if not exists public.public_opportunities (
 
 alter table public.public_opportunities enable row level security;
 
+drop policy if exists "Public opportunities are readable by everyone" on public.public_opportunities;
 create policy "Public opportunities are readable by everyone"
   on public.public_opportunities
   for select
@@ -34,14 +35,17 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Users can view own profile" on public.profiles;
 create policy "Users can view own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert own profile" on public.profiles;
 create policy "Users can insert own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id)
@@ -61,14 +65,17 @@ create table if not exists public.student_preferences (
 
 alter table public.student_preferences enable row level security;
 
+drop policy if exists "Users can view own preferences" on public.student_preferences;
 create policy "Users can view own preferences"
   on public.student_preferences for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own preferences" on public.student_preferences;
 create policy "Users can insert own preferences"
   on public.student_preferences for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own preferences" on public.student_preferences;
 create policy "Users can update own preferences"
   on public.student_preferences for update
   using (auth.uid() = user_id)
@@ -86,14 +93,17 @@ create table if not exists public.saved_opportunities (
 
 alter table public.saved_opportunities enable row level security;
 
+drop policy if exists "Users can view own saved opportunities" on public.saved_opportunities;
 create policy "Users can view own saved opportunities"
   on public.saved_opportunities for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own saved opportunities" on public.saved_opportunities;
 create policy "Users can insert own saved opportunities"
   on public.saved_opportunities for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can delete own saved opportunities" on public.saved_opportunities;
 create policy "Users can delete own saved opportunities"
   on public.saved_opportunities for delete
   using (auth.uid() = user_id);
@@ -111,14 +121,17 @@ create table if not exists public.application_tracking (
 
 alter table public.application_tracking enable row level security;
 
+drop policy if exists "Users can view own tracking" on public.application_tracking;
 create policy "Users can view own tracking"
   on public.application_tracking for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own tracking" on public.application_tracking;
 create policy "Users can insert own tracking"
   on public.application_tracking for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own tracking" on public.application_tracking;
 create policy "Users can update own tracking"
   on public.application_tracking for update
   using (auth.uid() = user_id)
