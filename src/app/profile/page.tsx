@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   User,
   ShieldCheck,
@@ -21,7 +22,16 @@ import {
 import { StudentProfile } from "@/types";
 import { t, UI_TEXT } from "@/lib/i18n";
 
-const OPPORTUNITY_CATEGORIES = ["Merit", "STEM", "State", "Means", "First-Gen"];
+const OPPORTUNITY_CATEGORIES = [
+  "Scholarships",
+  "Internships",
+  "Jobs",
+  "STEM",
+  "Merit",
+  "State",
+  "Means",
+  "First-Gen",
+];
 const WORK_MODES: Array<NonNullable<StudentProfile["preferredWorkMode"]>> = [
   "Remote",
   "Hybrid",
@@ -129,6 +139,29 @@ export default function ProfilePage() {
         <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
         <p>{t(UI_TEXT.privacyBanner, lang)}</p>
       </div>
+
+      {/* Matching Guidance */}
+      {(() => {
+        const missingTips: string[] = [];
+        if (!form.course) missingTips.push("Degree / Course");
+        if (!form.branch) missingTips.push("Branch (for Internships & Jobs)");
+        if (!form.year) missingTips.push("Academic Year");
+        if (!form.graduationYear) missingTips.push("Graduation Year");
+        if (!form.annualIncome) missingTips.push("Family Income (for Scholarships)");
+        if (!form.skills) missingTips.push("Skills (for Internships & Jobs)");
+        if (!form.preferredWorkMode) missingTips.push("Preferred Work Mode");
+        if (missingTips.length === 0) return null;
+        return (
+          <div className="rounded-2xl bg-indigo-50 border border-indigo-200 px-4 py-3 text-xs text-indigo-950">
+            <span className="font-bold">Boost your match accuracy: </span>
+            Add {missingTips.join(", ")} below so{" "}
+            <Link href="/opportunities" className="font-bold underline text-indigo-700">
+              Opportunities For You
+            </Link>{" "}
+            can rank scholarships, internships, and jobs accurately.
+          </div>
+        );
+      })()}
 
       <form
         onSubmit={handleSave}

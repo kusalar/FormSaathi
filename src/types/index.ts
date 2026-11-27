@@ -86,6 +86,65 @@ export interface ToastItem {
   type: "success" | "info" | "warning";
 }
 
+export type OpportunityCategory =
+  | "scholarship"
+  | "internship"
+  | "job"
+  | "hackathon"
+  | "research"
+  | "ambassador"
+  | "competition"
+  | "fellowship";
+
+export type WorkMode = "Remote" | "Hybrid" | "On-site";
+
+export type OpportunityStatus = "active" | "expired";
+
+export type ApplicationTrackingStatus =
+  | "interested"
+  | "applied"
+  | "interview"
+  | "selected"
+  | "rejected";
+
+export interface Opportunity {
+  id: string;
+  isDemo: boolean;
+  title: string;
+  organisation: string;
+  category: OpportunityCategory;
+  description: string;
+  eligibilityCriteria: string;
+  requiredDegrees: string[];
+  requiredBranches: string[];
+  eligibleYears: string[];
+  requiredSkills: string[];
+  minGradYear: number | null;
+  maxGradYear: number | null;
+  minIncomeLakh: number | null;
+  maxIncomeLakh: number | null;
+  institutionTypes: string[];
+  location: string;
+  workMode: WorkMode;
+  stipendOrSalary: string;
+  deadline: string | null; // YYYY-MM-DD
+  applicationUrl: string | null;
+  sourceName: string;
+  sourceUrl: string | null;
+  datePublished: string | null;
+  lastVerifiedAt: string;
+  status: OpportunityStatus;
+  experienceRequired?: string;
+}
+
+export interface ApplicationTrackingItem {
+  opportunityId: string;
+  opportunityTitle: string;
+  status: ApplicationTrackingStatus;
+  notes: string;
+  updatedAt: string;
+}
+
 export interface ActivityItem {
   id: string;
   label: LocalizedText;

@@ -1,5 +1,7 @@
 import { Language, StudentProfile, VoiceMessage } from "@/types";
 import { COURSE_OPTIONS, INCOME_OPTIONS, STATE_OPTIONS, YEAR_OPTIONS, SCHOLARSHIPS, evaluateEligibility } from "./scholarships";
+import { DEMO_OPPORTUNITIES } from "./opportunities/sources";
+import { matchOpportunity } from "./opportunities/matcher";
 
 // Type declarations for browser Web Speech API
 interface SpeechRecognitionEventLike {
@@ -470,6 +472,86 @@ export function generateAssistantReply(
           label: summaryStr,
           confirmed: false,
         },
+      },
+    };
+  }
+
+  // Opportunity discovery intents (internships, jobs, remote, ECE/CSE, scholarships)
+  const wantsInternship =
+    lower.includes("internship") ||
+    lower.includes("intern") ||
+    lower.includes("इंटर्नशिप") ||
+    lower.includes("ইন্টার্নশিপ");
+  const wantsJob =
+    lower.includes("job") ||
+    lower.includes("jobs") ||
+    lower.includes("नौकरी") ||
+    lower.includes("চাকরি");
+  const wantsRemote =
+    lower.includes("remote") || lower.includes("रिमोट") || lower.includes("রিমোট");
+  const mentionsEce = lower.includes("ece") || lower.includes("electronics");
+
+  if (wantsInternship || wantsJob) {
+    const targetCategory = wantsInternship ? "internship" : "job";
+    const tempProfile: StudentProfile = {
+      ...profile,
+      ...(mentionsEce && !profile.branch ? { branch: "ECE" } : {}),
+      ...(wantsRemote && !profile.preferredWorkMode ? { preferredWorkMode: "Remote" } : {}),
+    };
+
+    const hits = DEMO_OPPORTUNITIES.filter((opp) => {
+      if (opp.category !== targetCategory) return false;
+      if (opp.status === "expired") return false;
+      if (wantsRemote && opp.workMode !== "Remote") return false;
+      if (mentionsEce) {
+        const branches = opp.requiredBranches.map((b) => b.toLowerCase());
+        if (branches.length > 0 && !branches.includes("ece")) return false;
+      }
+      return true;
+    })
+      .map((opp) => ({ opp, match: matchOpportunity(tempProfile, opp) }))
+      .sort((a, b) => b.match.percentage - a.match.percentage)
+      .slice(0, 3);
+
+    const text =
+      hits.length > 0
+        ? lang === "hi"
+          ? `यहाँ आपके अनुरोध से मेल खाने वाले ${hits.length} डेमो ${wantsInternship ? "इंटर्नशिप" : "नौकरी"} अवसर हैं:`
+          : lang === "bn"
+          ? `আপনার অনুরোধের সাথে মিলে যাওয়া ${hits.length}টি ডেমো ${wantsInternship ? "ইন্টার্নশিপ" : "চাকরি"} সুযোগ এখানে রয়েছে:`
+          : `Here are ${hits.length} demonstration ${targetCategory}s matching your request:`
+        : lang === "hi"
+        ? "अभी सटीक मिलान नहीं मिला। कृपया 'Opportunities For You' पेज पर सभी फ़िल्टर आज़माएं या अपनी प्रोफ़ाइल अपडेट करें।"
+        : lang === "bn"
+        ? "এই মুহূর্তে সঠিক মিল পাওয়া যায়নি। অনুগ্রহ করে 'Opportunities For You' পেজে ফিল্টার দেখুন বা প্রোফাইল আপডেট করুন।"
+        : "I couldn't find an exact match for that filter right now. Open Opportunities For You to browse all listings or update your skills in My Profile.";
+
+    return {
+      detectedUpdates: {},
+      reply: {
+        role: "assistant",
+        lang,
+        text,
+        matchedScholarships: hits.map(({ opp, match }) => ({
+          id: opp.id,
+          name: opp.title,
+          amount: `${opp.stipendOrSalary} • ${match.percentage}% Match`,
+          reasons:
+            match.reasons.length > 0
+              ? match.reasons
+              : match.verificationNeeded.map((v) => `Needs verification: ${v}`),
+        })),
+        actions: [
+          {
+            label:
+              lang === "hi"
+                ? "सभी अवसर देखें"
+                : lang === "bn"
+                ? "সব সুযোগ দেখুন"
+                : "Open Opportunities For You",
+            href: "/opportunities",
+          },
+        ],
       },
     };
   }

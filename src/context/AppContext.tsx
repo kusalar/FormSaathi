@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   ActivityItem,
+  ApplicationTrackingItem,
+  ApplicationTrackingStatus,
   Language,
   LocalizedText,
   Scholarship,
@@ -23,9 +25,11 @@ import { SCHOLARSHIPS } from "@/lib/scholarships";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
+  deleteCloudOpportunityTracking,
   loadCloudUserData,
   syncCloudCheckedDocs,
   syncCloudSavedOpportunity,
+  upsertCloudOpportunityTracking,
   upsertCloudProfile,
 } from "@/lib/supabase/db";
 
@@ -43,6 +47,14 @@ interface AppState {
   toggleDoc: (docId: string) => void;
   savedScholarships: string[];
   toggleSaveScholarship: (id: string) => void;
+  applicationTracking: Record<string, ApplicationTrackingItem>;
+  updateOpportunityTracking: (
+    opportunityId: string,
+    opportunityTitle: string,
+    status: ApplicationTrackingStatus,
+    notes?: string
+  ) => void;
+  removeOpportunityTracking: (opportunityId: string) => void;
   messages: VoiceMessage[];
   sendMessage: (text: string) => void;
   confirmPendingDetails: (messageId: string, accept: boolean) => void;
@@ -144,6 +156,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<StudentProfile>(DEFAULT_PROFILE);
   const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>({});
   const [savedScholarships, setSavedScholarships] = useState<string[]>(["demo-central-sector"]);
+  const [applicationTracking, setApplicationTracking] = useState<
+    Record<string, ApplicationTrackingItem>
+  >({});
   const [messages, setMessages] = useState<VoiceMessage[]>([getInitialGreeting("en")]);
   const [pendingUpdatesMap, setPendingUpdatesMap] = useState<Record<string, Partial<StudentProfile>>>({});
   const [autoSpeak, setAutoSpeak] = useState<boolean>(true);
@@ -181,6 +196,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.profile) setProfile({ ...DEFAULT_PROFILE, ...parsed.profile });
         if (parsed.checkedDocs) setCheckedDocs(parsed.checkedDocs);
         if (parsed.savedScholarships) setSavedScholarships(parsed.savedScholarships);
+        if (parsed.applicationTracking) setApplicationTracking(parsed.applicationTracking);
         if (typeof parsed.autoSpeak === "boolean") setAutoSpeak(parsed.autoSpeak);
         if (Array.isArray(parsed.activities) && parsed.activities.length > 0) {
           setActivities(parsed.activities);
@@ -202,6 +218,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           profile,
           checkedDocs,
           savedScholarships,
+          applicationTracking,
           autoSpeak,
           activities: activities.slice(0, 12),
         })
@@ -209,7 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore storage quota errors
     }
-  }, [lang, profile, checkedDocs, savedScholarships, autoSpeak, activities]);
+  }, [lang, profile, checkedDocs, savedScholarships, applicationTracking, autoSpeak, activities]);
 
   // Sync with Supabase Auth & Database when configured
   useEffect(() => {
@@ -242,6 +259,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         if (Object.keys(cloud.checkedDocs).length > 0) {
           setCheckedDocs(cloud.checkedDocs);
+        }
+        if (Object.keys(cloud.applicationTracking).length > 0) {
+          setApplicationTracking(cloud.applicationTracking);
         }
         setCloudSyncStatus("synced");
 
@@ -389,10 +409,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
       showToast(
-        exists ? "Removed from saved list" : "Saved scholarship to your list",
+        exists ? "Removed from saved list" : "Saved opportunity to your list",
         undefined,
         exists ? "info" : "success"
       );
+      return next;
+    });
+  };
+
+  const updateOpportunityTracking = (
+    opportunityId: string,
+    opportunityTitle: string,
+    status: ApplicationTrackingStatus,
+    notes?: string
+  ) => {
+    setApplicationTracking((prev) => {
+      const existing = prev[opportunityId];
+      const nextItem: ApplicationTrackingItem = {
+        opportunityId,
+        opportunityTitle,
+        status,
+        notes: notes !== undefined ? notes : existing?.notes || "",
+        updatedAt: new Date().toISOString(),
+      };
+      if (user && supabaseConfigured) {
+        const supabase = createSupabaseClient();
+        if (supabase) {
+          void upsertCloudOpportunityTracking(supabase, user.id, nextItem).then((res) => {
+            if (!res.ok) {
+              showToast("Tracking sync warning", res.error, "warning");
+            }
+          });
+        }
+      }
+      showToast(`Status updated: ${status}`, opportunityTitle, "success");
+      return { ...prev, [opportunityId]: nextItem };
+    });
+  };
+
+  const removeOpportunityTracking = (opportunityId: string) => {
+    setApplicationTracking((prev) => {
+      const next = { ...prev };
+      delete next[opportunityId];
+      if (user && supabaseConfigured) {
+        const supabase = createSupabaseClient();
+        if (supabase) {
+          void deleteCloudOpportunityTracking(supabase, user.id, opportunityId);
+        }
+      }
       return next;
     });
   };
@@ -617,6 +681,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleDoc,
         savedScholarships,
         toggleSaveScholarship,
+        applicationTracking,
+        updateOpportunityTracking,
+        removeOpportunityTracking,
         messages,
         sendMessage,
         confirmPendingDetails,

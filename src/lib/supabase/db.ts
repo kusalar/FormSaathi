@@ -1,11 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Language, StudentProfile } from "@/types";
+import {
+  ApplicationTrackingItem,
+  ApplicationTrackingStatus,
+  Language,
+  StudentProfile,
+} from "@/types";
 
 export interface CloudUserData {
   profile: Partial<StudentProfile>;
   lang?: Language;
   savedScholarships: string[];
   checkedDocs: Record<string, boolean>;
+  applicationTracking: Record<string, ApplicationTrackingItem>;
 }
 
 export interface DbWriteResult {
@@ -22,7 +28,10 @@ export async function loadCloudUserData(
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.from("student_preferences").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("saved_opportunities").select("scholarship_id").eq("user_id", userId),
-    supabase.from("application_tracking").select("scholarship_id, checked_docs").eq("user_id", userId),
+    supabase
+      .from("application_tracking")
+      .select("*")
+      .eq("user_id", userId),
   ]);
 
   if (profileRes.error) throw profileRes.error;
@@ -58,15 +67,37 @@ export async function loadCloudUserData(
 
   const savedScholarships = (savedRes.data || []).map((r) => r.scholarship_id);
   const checkedDocs: Record<string, boolean> = {};
+  const applicationTracking: Record<string, ApplicationTrackingItem> = {};
   for (const row of trackingRes.data || []) {
-    if (row.checked_docs && typeof row.checked_docs === "object") {
+    if (
+      row.scholarship_id === "global-checklist" &&
+      row.checked_docs &&
+      typeof row.checked_docs === "object"
+    ) {
       Object.assign(checkedDocs, row.checked_docs);
+    } else if (
+      row.scholarship_id !== "global-checklist" &&
+      ["interested", "applied", "interview", "selected", "rejected"].includes(row.status)
+    ) {
+      applicationTracking[row.scholarship_id] = {
+        opportunityId: row.scholarship_id,
+        opportunityTitle: row.opportunity_title || row.scholarship_id,
+        status: row.status as ApplicationTrackingStatus,
+        notes: row.notes || "",
+        updatedAt: row.updated_at || new Date().toISOString(),
+      };
     }
   }
 
   const lang = profileRes.data?.preferred_language as Language | undefined;
 
-  return { profile: mergedProfile, lang, savedScholarships, checkedDocs };
+  return {
+    profile: mergedProfile,
+    lang,
+    savedScholarships,
+    checkedDocs,
+    applicationTracking,
+  };
 }
 
 export async function upsertCloudProfile(
@@ -168,6 +199,40 @@ export async function syncCloudCheckedDocs(
     },
     { onConflict: "user_id,scholarship_id" }
   );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function upsertCloudOpportunityTracking(
+  supabase: SupabaseClient,
+  userId: string,
+  item: ApplicationTrackingItem
+): Promise<DbWriteResult> {
+  const { error } = await supabase.from("application_tracking").upsert(
+    {
+      user_id: userId,
+      scholarship_id: item.opportunityId,
+      opportunity_title: item.opportunityTitle,
+      status: item.status,
+      notes: item.notes,
+      updated_at: item.updatedAt,
+    },
+    { onConflict: "user_id,scholarship_id" }
+  );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function deleteCloudOpportunityTracking(
+  supabase: SupabaseClient,
+  userId: string,
+  opportunityId: string
+): Promise<DbWriteResult> {
+  const { error } = await supabase
+    .from("application_tracking")
+    .delete()
+    .eq("user_id", userId)
+    .eq("scholarship_id", opportunityId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS, evaluateEligibility } from "@/lib/scholarships";
+import { DEMO_OPPORTUNITIES } from "@/lib/opportunities/sources";
+import { matchOpportunity } from "@/lib/opportunities/matcher";
 import { t, UI_TEXT } from "@/lib/i18n";
 import { AssistantWidget } from "@/components/AssistantWidget";
 
@@ -31,6 +33,7 @@ export default function HomePage() {
     profileCompleteness,
     docProgress,
     savedScholarships,
+    applicationTracking,
     activities,
     setSelectedScholarship,
     sendMessage,
@@ -38,6 +41,20 @@ export default function HomePage() {
 
   const [tipIndex, setTipIndex] = useState(0);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+
+  const topInternship = DEMO_OPPORTUNITIES.filter(
+    (o) => o.category === "internship" && o.status === "active"
+  )
+    .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
+    .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+
+  const topJob = DEMO_OPPORTUNITIES.filter(
+    (o) => o.category === "job" && o.status === "active"
+  )
+    .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
+    .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+
+  const trackedCount = Object.keys(applicationTracking).length;
 
   // Prioritize recommended demonstration scholarships by eligibility match
   const recommendedScholarships = [...SCHOLARSHIPS]
@@ -381,6 +398,83 @@ export default function HomePage() {
                   </article>
                 );
               })}
+            </div>
+          </section>
+
+          {/* Personalised Internships, Jobs & Saved Summary */}
+          <section className="rounded-3xl bg-white border border-indigo-100 shadow-sm p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-indigo-950">
+                  Personalised Internships &amp; Jobs (Demo)
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Saved: {savedScholarships.length} • Tracked Applications: {trackedCount}
+                </p>
+              </div>
+              <Link
+                href="/opportunities"
+                className="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+              >
+                Explore All Opportunities
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {topInternship && (
+                <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 uppercase">
+                        Recommended Internship
+                      </span>
+                      <span className="text-xs font-extrabold text-emerald-700">
+                        {topInternship.match.percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950">
+                      {topInternship.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {topInternship.opp.organisation} • {topInternship.opp.workMode}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    View Match Details <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
+
+              {topJob && (
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                        Recommended Job
+                      </span>
+                      <span className="text-xs font-extrabold text-emerald-700">
+                        {topJob.match.percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950">
+                      {topJob.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {topJob.opp.organisation} • {topJob.opp.workMode}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    View Match Details <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
             </div>
           </section>
 

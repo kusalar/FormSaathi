@@ -17,6 +17,11 @@ export const UI_TEXT = {
   },
   nav: {
     home: { en: "Home", hi: "होम", bn: "হোম" },
+    opportunities: {
+      en: "Opportunities For You",
+      hi: "आपके लिए अवसर",
+      bn: "আপনার জন্য সুযোগ",
+    },
     profile: { en: "My Profile", hi: "मेरी प्रोफ़ाइल", bn: "আমার প্রোফাইল" },
     scholarships: { en: "Find Scholarships", hi: "छात्रवृत्ति खोजें", bn: "বৃত্তি খুঁজুন" },
     eligibility: { en: "Eligibility Check", hi: "पात्रता जांच", bn: "যোগ্যতা যাচাই" },
