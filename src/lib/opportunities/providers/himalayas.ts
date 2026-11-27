@@ -1,4 +1,5 @@
 import { Opportunity } from "@/types";
+import { classifyEngineeringDomain } from "./classify";
 import {
   InternshipProvider,
   InternshipProviderResult,
@@ -14,6 +15,7 @@ export interface HimalayasRawJob {
   excerpt?: string;
   companyName?: string;
   companySlug?: string;
+  companyLogo?: string;
   employmentType?: string;
   minSalary?: number | null;
   maxSalary?: number | null;
@@ -122,6 +124,20 @@ export function normalizeHimalayasJob(
 
   const id = `him-${Buffer.from(stableKey).toString("base64url").slice(0, 24)}`;
 
+  const hasIndia = restrictions.some((r) => {
+    const rl = r.toLowerCase();
+    return rl === "india" || rl === "in" || rl === "worldwide";
+  });
+
+  const indiaEligibility =
+    restrictions.length === 0
+      ? "worldwide"
+      : hasIndia
+      ? "accepts_india"
+      : "restricted_other";
+
+  const combinedText = `${raw.title} ${raw.excerpt || ""} ${skills.join(" ")}`;
+
   return {
     id,
     isDemo: false,
@@ -156,6 +172,11 @@ export function normalizeHimalayasJob(
     employmentType: raw.employmentType || "Intern",
     locationRestrictions: restrictions,
     hasAcademicCriteria: false,
+    sourceBadge: "LIVE API",
+    indiaEligibility,
+    engineeringDomain: classifyEngineeringDomain(combinedText),
+    applicationStatusLabel: isExpired ? "Closed" : "Open",
+    companyLogo: raw.companyLogo || null,
   };
 }
 

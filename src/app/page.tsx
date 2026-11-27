@@ -22,6 +22,7 @@ import {
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS, evaluateEligibility } from "@/lib/scholarships";
 import { DEMO_OPPORTUNITIES } from "@/lib/opportunities/sources";
+import { OFFICIAL_INDIAN_INTERNSHIP_SOURCES } from "@/lib/opportunities/providers/indianOfficialSources";
 import { matchOpportunity } from "@/lib/opportunities/matcher";
 import { Opportunity } from "@/types";
 import { t, UI_TEXT } from "@/lib/i18n";
@@ -73,14 +74,17 @@ export default function HomePage() {
           });
           return;
         }
-        const best = (data.opportunities as Opportunity[])
+        const liveOnly = (data.opportunities as Opportunity[]).filter(
+          (o) => o.sourceBadge === "LIVE API"
+        );
+        const best = liveOnly
           .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
           .sort((a, b) => b.match.percentage - a.match.percentage)[0];
         setLiveInternship({
-          opp: best?.opp || data.opportunities[0],
-          isLive: true,
+          opp: best?.opp || liveOnly[0] || null,
+          isLive: liveOnly.length > 0,
           loading: false,
-          error: null,
+          error: liveOnly.length === 0 ? "No live remote internships matched." : null,
           fetchedAt: data.fetchedAt || null,
         });
       })
@@ -102,6 +106,11 @@ export default function HomePage() {
   const topInternshipMatch = liveInternship.opp
     ? matchOpportunity(profile, liveInternship.opp)
     : null;
+
+  const topIndianResearch = OFFICIAL_INDIAN_INTERNSHIP_SOURCES.map((o) => ({
+    opp: o,
+    match: matchOpportunity(profile, o),
+  })).sort((a, b) => b.match.percentage - a.match.percentage)[0];
 
   const topJob = DEMO_OPPORTUNITIES.filter(
     (o) => o.category === "job" && o.status === "active"
@@ -476,7 +485,34 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {topIndianResearch && (
+                <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
+                        OFFICIAL SOURCE
+                      </span>
+                      <span className="text-xs font-extrabold text-indigo-700">
+                        {topIndianResearch.match.percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950">
+                      {topIndianResearch.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {topIndianResearch.opp.organisation}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    View Indian Programmes <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
+
               {liveInternship.loading ? (
                 <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4 animate-pulse space-y-2">
                   <div className="h-4 w-32 bg-indigo-100 rounded" />

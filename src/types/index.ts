@@ -107,6 +107,32 @@ export type ApplicationTrackingStatus =
   | "selected"
   | "rejected";
 
+export type SourceBadgeType =
+  | "LIVE API"
+  | "OFFICIAL SOURCE"
+  | "NEEDS VERIFICATION"
+  | "DEMO";
+
+export type IndiaEligibilityType =
+  | "india_based"
+  | "accepts_india"
+  | "worldwide"
+  | "location_unknown"
+  | "restricted_other";
+
+export type EngineeringDomainType =
+  | "ece_vlsi"
+  | "cse_software"
+  | "research"
+  | "general_engineering"
+  | "other";
+
+export type ApplicationStatusLabel =
+  | "Open"
+  | "Upcoming"
+  | "Closed"
+  | "Unverified";
+
 export interface Opportunity {
   id: string;
   isDemo: boolean;
@@ -139,6 +165,11 @@ export interface Opportunity {
   locationRestrictions?: string[];
   hasAcademicCriteria?: boolean;
   lastFetchedAt?: string;
+  sourceBadge?: SourceBadgeType;
+  indiaEligibility?: IndiaEligibilityType;
+  engineeringDomain?: EngineeringDomainType;
+  applicationStatusLabel?: ApplicationStatusLabel;
+  companyLogo?: string | null;
 }
 
 export interface ApplicationTrackingItem {

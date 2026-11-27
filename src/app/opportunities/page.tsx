@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   RefreshCw,
   Radio,
+  Building2,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import {
@@ -26,9 +27,16 @@ import {
   DEMO_OPPORTUNITIES,
 } from "@/lib/opportunities/sources";
 import { isOpportunityExpired, matchOpportunity } from "@/lib/opportunities/matcher";
-import { ApplicationTrackingStatus, Opportunity, WorkMode } from "@/types";
+import {
+  ApplicationTrackingStatus,
+  EngineeringDomainType,
+  Opportunity,
+  WorkMode,
+} from "@/types";
+import type { ProviderStatusSummary } from "@/lib/opportunities/providers/aggregator";
 
 type TabType = "all" | "scholarship" | "internship" | "job" | "saved" | "history";
+type DomainFilterType = "all" | "indian_official" | EngineeringDomainType;
 
 const STATUS_OPTIONS: Array<{ value: ApplicationTrackingStatus; label: string }> = [
   { value: "interested", label: "Interested" },
@@ -40,13 +48,13 @@ const STATUS_OPTIONS: Array<{ value: ApplicationTrackingStatus; label: string }>
 
 interface LiveInternshipsState {
   items: Opportunity[];
+  providers: ProviderStatusSummary[];
   isLive: boolean;
   loading: boolean;
   error: string | null;
   fetchedAt: string | null;
   totalCount: number;
   page: number;
-  cached: boolean;
 }
 
 export default function OpportunitiesPage() {
@@ -64,21 +72,24 @@ export default function OpportunitiesPage() {
   const [internshipSourceMode, setInternshipSourceMode] = useState<"live" | "demo">("live");
   const [liveState, setLiveState] = useState<LiveInternshipsState>({
     items: [],
+    providers: [],
     isLive: false,
     loading: true,
     error: null,
     fetchedAt: null,
     totalCount: 0,
     page: 1,
-    cached: false,
   });
 
   const [todayIso, setTodayIso] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<TabType>("internship");
+  const [domainFilter, setDomainFilter] = useState<DomainFilterType>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [countryScope, setCountryScope] = useState<"IN" | "all">("IN");
   const [workModeFilter, setWorkModeFilter] = useState<"all" | WorkMode>("all");
   const [locationFilter, setLocationFilter] = useState("all");
+  const [deadlineFilter, setDeadlineFilter] = useState<"all" | "has_deadline">("all");
   const [showExpiredOrIneligible, setShowExpiredOrIneligible] = useState(false);
 
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
@@ -101,39 +112,27 @@ export default function OpportunitiesPage() {
         const res = await fetch(`/api/internships?${params.toString()}`);
         const data = await res.json();
 
-        if (!res.ok || !data.ok) {
-          setLiveState((prev) => ({
-            ...prev,
-            loading: false,
-            isLive: false,
-            items: [],
-            error: data.error || "Live internship provider is temporarily unavailable.",
-            fetchedAt: data.lastSuccessfulFetchAt || prev.fetchedAt,
-          }));
-          return;
-        }
-
         setTodayIso(new Date().toISOString().slice(0, 10));
         setLiveState({
           items: Array.isArray(data.opportunities) ? data.opportunities : [],
+          providers: Array.isArray(data.providers) ? data.providers : [],
           isLive: Boolean(data.isLive),
           loading: false,
-          error: null,
+          error: !data.isLive ? "Live API providers temporarily unavailable." : null,
           fetchedAt: data.fetchedAt || null,
           totalCount: Number(data.totalCount || 0),
           page: Number(data.page || targetPage),
-          cached: Boolean(data.cached),
         });
+
         if (opts?.refresh) {
-          showToast("Internships refreshed", "Fetched latest listings from Himalayas.", "success");
+          showToast("Internships refreshed", "Updated from live & official sources.", "success");
         }
       } catch {
         setLiveState((prev) => ({
           ...prev,
           loading: false,
           isLive: false,
-          items: [],
-          error: "Network error while contacting live internship service.",
+          error: "Network error while contacting internship providers.",
         }));
       }
     },
@@ -149,7 +148,6 @@ export default function OpportunitiesPage() {
     }
   }, [internshipSourceMode, countryScope, fetchLiveInternships]);
 
-  // Combine demo scholarships/jobs with either live Himalayas internships or demo internships
   const combinedOpportunities = useMemo(() => {
     const demoNonInterns = DEMO_OPPORTUNITIES.filter((o) => o.category !== "internship");
     const internships =
@@ -190,6 +188,10 @@ export default function OpportunitiesPage() {
     return Array.from(new Set(combinedOpportunities.map((o) => o.location))).sort();
   }, [combinedOpportunities]);
 
+  const sourcesList = useMemo(() => {
+    return Array.from(new Set(combinedOpportunities.map((o) => o.sourceName))).sort();
+  }, [combinedOpportunities]);
+
   const filtered = useMemo(() => {
     return enriched.filter(({ opp, match, expired }) => {
       if (tab === "saved" && !savedScholarships.includes(opp.id)) return false;
@@ -210,16 +212,22 @@ export default function OpportunitiesPage() {
         return false;
       }
 
+      if (domainFilter === "indian_official") {
+        if (opp.indiaEligibility !== "india_based" && opp.sourceBadge !== "OFFICIAL SOURCE") {
+          return false;
+        }
+      } else if (domainFilter !== "all" && opp.engineeringDomain !== domainFilter) {
+        return false;
+      }
+
+      if (sourceFilter !== "all" && opp.sourceName !== sourceFilter) return false;
       if (workModeFilter !== "all" && opp.workMode !== workModeFilter) return false;
       if (locationFilter !== "all" && opp.location !== locationFilter) return false;
+      if (deadlineFilter === "has_deadline" && !opp.deadline) return false;
 
       const q = query.trim().toLowerCase();
-      if (q && opp.category !== "internship") {
+      if (q) {
         const hay = `${opp.title} ${opp.organisation} ${opp.description} ${opp.requiredSkills.join(" ")} ${opp.requiredBranches.join(" ")}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      if (q && opp.category === "internship" && internshipSourceMode === "demo") {
-        const hay = `${opp.title} ${opp.organisation} ${opp.description} ${opp.requiredSkills.join(" ")}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -230,10 +238,12 @@ export default function OpportunitiesPage() {
     savedScholarships,
     applicationTracking,
     showExpiredOrIneligible,
+    domainFilter,
+    sourceFilter,
     workModeFilter,
     locationFilter,
+    deadlineFilter,
     query,
-    internshipSourceMode,
   ]);
 
   const trackingList = Object.values(applicationTracking).sort((a, b) =>
@@ -248,12 +258,12 @@ export default function OpportunitiesPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-xs font-bold text-indigo-100">
               <Compass className="w-3.5 h-3.5 text-amber-300" />
-              Personalised Discovery Engine
+              Indian Engineering &amp; Global Remote Discovery
             </span>
             {internshipSourceMode === "live" && liveState.isLive && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-xs font-bold text-emerald-200">
                 <Radio className="w-3.5 h-3.5 animate-pulse" />
-                LIVE SOURCE • Himalayas
+                LIVE API + OFFICIAL SOURCES
               </span>
             )}
           </div>
@@ -261,16 +271,8 @@ export default function OpportunitiesPage() {
             Opportunities For You{profile.name && profile.name !== "GUEST" ? `, ${profile.name}` : ""}
           </h1>
           <p className="text-xs sm:text-sm text-indigo-200 max-w-2xl">
-            Live remote internships from{" "}
-            <a
-              href="https://himalayas.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-semibold text-white"
-            >
-              Himalayas
-            </a>{" "}
-            plus demonstration scholarships and entry-level jobs matched against your profile.
+            Multi-provider discovery combining live APIs (Himalayas, Remotive) and
+            official Indian portals (AICTE, ISRO, DRDO, CSIR, IITs, IASc SRFP).
           </p>
         </div>
 
@@ -290,38 +292,33 @@ export default function OpportunitiesPage() {
         </div>
       </div>
 
-      {/* Live Source Attribution & Refresh Bar */}
+      {/* Multi-Provider Status & Refresh Bar */}
       <div className="rounded-2xl bg-white border border-indigo-100 px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           {internshipSourceMode === "live" ? (
-            liveState.isLive ? (
-              <>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
-                  LIVE SOURCE: Himalayas
+            liveState.providers.length > 0 ? (
+              liveState.providers.map((p) => (
+                <span
+                  key={p.id}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold ${
+                    p.ok
+                      ? p.isLive
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        : "bg-indigo-50 text-indigo-800 border border-indigo-200"
+                      : "bg-rose-50 text-rose-700 border border-rose-200"
+                  }`}
+                >
+                  {p.name}: {p.ok ? `${p.count} loaded` : "Unavailable"}
                 </span>
-                <span className="text-slate-600">
-                  {liveState.totalCount.toLocaleString()} total internships • Last fetched:{" "}
-                  {liveState.fetchedAt
-                    ? new Date(liveState.fetchedAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Just now"}
-                  {liveState.cached ? " (cached)" : ""}
-                </span>
-              </>
-            ) : liveState.loading ? (
-              <span className="text-indigo-700 font-semibold">
-                Fetching live internships from Himalayas...
-              </span>
+              ))
             ) : (
-              <span className="text-rose-700 font-semibold">
-                Live internships unavailable{liveState.fetchedAt ? ` (last fetch: ${new Date(liveState.fetchedAt).toLocaleTimeString()})` : ""}
+              <span className="text-indigo-700 font-semibold">
+                Connecting to internship providers...
               </span>
             )
           ) : (
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-              DEMO MODE: Showing local demonstration internships
+            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold">
+              DEMO MODE: Local demonstration catalog
             </span>
           )}
         </div>
@@ -337,7 +334,7 @@ export default function OpportunitiesPage() {
                   : "text-indigo-700"
               }`}
             >
-              Live API
+              Live + Official
             </button>
             <button
               type="button"
@@ -366,14 +363,14 @@ export default function OpportunitiesPage() {
         </div>
       </div>
 
-      {/* Note on Scholarships & Jobs still being Demo */}
+      {/* Transparency Banner */}
       <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-2.5 text-xs text-amber-900 flex items-start gap-2.5">
         <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <p>
-          <strong>Data Transparency:</strong> Internships in <em>Live API</em> mode are
-          fetched in real time from Himalayas (refreshed per provider availability and
-          5-minute cache). Scholarships and Jobs remain clearly labelled{" "}
-          <strong>DEMO</strong> records.
+          <strong>Source Labels:</strong> <strong>LIVE API</strong> entries come from
+          Himalayas/Remotive in real time; <strong>OFFICIAL SOURCE</strong> entries link
+          directly to verified Indian government/IIT/research portals (check current
+          window on the portal); <strong>DEMO</strong> entries are practice examples.
         </p>
       </div>
 
@@ -395,7 +392,7 @@ export default function OpportunitiesPage() {
         <div className="rounded-2xl bg-white border border-indigo-100 p-4 shadow-xs">
           <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-violet-600" />
-            Internships ({internshipSourceMode === "live" ? "Live" : "Demo"})
+            Internships
           </p>
           <p className="text-2xl font-extrabold text-violet-700 mt-1">
             {counts.internship}
@@ -410,7 +407,7 @@ export default function OpportunitiesPage() {
         </div>
       </div>
 
-      {/* Tabs + Search + Filters */}
+      {/* Tabs + Engineering Domain Filters + Search */}
       <div className="rounded-3xl bg-white border border-indigo-100 p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap gap-2">
           {(
@@ -438,6 +435,33 @@ export default function OpportunitiesPage() {
           ))}
         </div>
 
+        {/* Indian / Engineering / Research Track Pills */}
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              { id: "all", label: "All Tracks" },
+              { id: "indian_official", label: "Indian Official Portals" },
+              { id: "ece_vlsi", label: "ECE / VLSI / Embedded" },
+              { id: "research", label: "Research Internships" },
+              { id: "cse_software", label: "CSE / Software / AI" },
+              { id: "general_engineering", label: "General Engineering" },
+            ] as Array<{ id: DomainFilterType; label: string }>
+          ).map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => setDomainFilter(d.id)}
+              className={`px-3 py-1 rounded-xl text-[11px] font-bold border transition ${
+                domainFilter === d.id
+                  ? "bg-indigo-950 text-white border-indigo-950"
+                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-indigo-50"
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -445,25 +469,25 @@ export default function OpportunitiesPage() {
               void fetchLiveInternships({ page: 1, q: query });
             }
           }}
-          className="grid grid-cols-1 sm:grid-cols-12 gap-3"
+          className="grid grid-cols-1 sm:grid-cols-12 gap-2.5"
         >
-          <div className="sm:col-span-4 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <div className="sm:col-span-3 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Python, Web, VLSI, AI..."
+              placeholder="Keyword, org, VLSI, Python..."
               aria-label="Search opportunities"
-              className="w-full pl-10 pr-3.5 py-2 rounded-xl border border-indigo-100 bg-indigo-50/40 text-sm text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-indigo-100 bg-indigo-50/40 text-xs sm:text-sm text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           <select
-            aria-label="India or Worldwide scope"
+            aria-label="India or Worldwide API scope"
             value={countryScope}
             onChange={(e) => setCountryScope(e.target.value as "IN" | "all")}
-            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-xs font-semibold text-indigo-950"
+            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-2.5 py-2 text-xs font-semibold text-indigo-950"
           >
             <option value="IN">Accepts India (IN)</option>
             <option value="all">Worldwide (All)</option>
@@ -473,19 +497,19 @@ export default function OpportunitiesPage() {
             aria-label="Filter by work mode"
             value={workModeFilter}
             onChange={(e) => setWorkModeFilter(e.target.value as "all" | WorkMode)}
-            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-xs font-semibold text-indigo-950"
+            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-2.5 py-2 text-xs font-semibold text-indigo-950"
           >
             <option value="all">All Work Modes</option>
-            <option value="Remote">Remote</option>
-            <option value="Hybrid">Hybrid</option>
             <option value="On-site">On-site</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="Remote">Remote</option>
           </select>
 
           <select
             aria-label="Filter by location"
             value={locationFilter}
             onChange={(e) => setLocationFilter(e.target.value)}
-            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-xs font-semibold text-indigo-950"
+            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-2.5 py-2 text-xs font-semibold text-indigo-950"
           >
             <option value="all">All Locations</option>
             {locations.map((loc) => (
@@ -495,49 +519,73 @@ export default function OpportunitiesPage() {
             ))}
           </select>
 
+          <select
+            aria-label="Filter by source"
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="sm:col-span-2 rounded-xl border border-indigo-100 bg-white px-2.5 py-2 text-xs font-semibold text-indigo-950"
+          >
+            <option value="all">All Sources</option>
+            {sourcesList.map((src) => (
+              <option key={src} value={src}>
+                {src}
+              </option>
+            ))}
+          </select>
+
           <button
             type="submit"
-            className="sm:col-span-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 transition"
+            className="sm:col-span-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 transition"
           >
-            Search API
+            Go
           </button>
         </form>
 
-        <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showExpiredOrIneligible}
-            onChange={(e) => setShowExpiredOrIneligible(e.target.checked)}
-            className="rounded text-indigo-600"
-          />
-          Show expired or location-restricted listings
-        </label>
+        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={deadlineFilter === "has_deadline"}
+              onChange={(e) =>
+                setDeadlineFilter(e.target.checked ? "has_deadline" : "all")
+              }
+              className="rounded text-indigo-600"
+            />
+            Has explicit deadline
+          </label>
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showExpiredOrIneligible}
+              onChange={(e) => setShowExpiredOrIneligible(e.target.checked)}
+              className="rounded text-indigo-600"
+            />
+            Show expired or restricted listings
+          </label>
+        </div>
       </div>
 
-      {/* Live Error Banner (never fakes live data) */}
+      {/* Provider Failure Banner (isolated, never hides official sources) */}
       {internshipSourceMode === "live" && liveState.error && (
         <div
           role="alert"
-          className="rounded-3xl bg-rose-50 border border-rose-200 p-5 text-sm text-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          className="rounded-3xl bg-rose-50 border border-rose-200 p-4 text-xs sm:text-sm text-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         >
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">Live Internship Service Temporarily Unavailable</p>
-              <p className="text-xs mt-0.5">{liveState.error}</p>
-            </div>
+            <span>{liveState.error} Official Indian portal links remain available below.</span>
           </div>
           <button
             type="button"
             onClick={() => void fetchLiveInternships({ page: liveState.page, refresh: true })}
             className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0"
           >
-            Retry Live Fetch
+            Retry Live Providers
           </button>
         </div>
       )}
 
-      {/* Loading / Empty / List */}
+      {/* Loading / Empty / Cards */}
       {internshipSourceMode === "live" && liveState.loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((n) => (
@@ -558,15 +606,17 @@ export default function OpportunitiesPage() {
             No opportunities match your current filters
           </p>
           <p className="text-sm text-slate-500">
-            Try switching to &ldquo;Worldwide (All)&rdquo;, clearing keywords, or checking
-            the Scholarships/Jobs tabs.
+            Try switching tracks, clearing keywords, or selecting &ldquo;Worldwide (All)&rdquo;.
           </p>
           <button
             type="button"
             onClick={() => {
+              setDomainFilter("all");
+              setSourceFilter("all");
               setQuery("");
               setWorkModeFilter("all");
               setLocationFilter("all");
+              setDeadlineFilter("all");
               setShowExpiredOrIneligible(false);
               if (internshipSourceMode === "live") {
                 void fetchLiveInternships({ page: 1, q: "", country: countryScope });
@@ -584,6 +634,8 @@ export default function OpportunitiesPage() {
               const isSaved = savedScholarships.includes(opp.id);
               const tracking = applicationTracking[opp.id];
               const isEditingNotes = editingNotesId === opp.id;
+              const badge =
+                opp.sourceBadge || (opp.isDemo ? "DEMO" : "LIVE API");
 
               return (
                 <article
@@ -593,18 +645,24 @@ export default function OpportunitiesPage() {
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {opp.isDemo ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                            DEMO
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            LIVE SOURCE
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            badge === "LIVE API"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : badge === "OFFICIAL SOURCE"
+                              ? "bg-indigo-100 text-indigo-800"
+                              : badge === "NEEDS VERIFICATION"
+                              ? "bg-sky-100 text-sky-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {badge}
+                        </span>
+                        {opp.indiaEligibility === "india_based" && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800">
+                            INDIA-BASED
                           </span>
                         )}
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-indigo-100 text-indigo-800">
-                          {opp.category}
-                        </span>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                             match.eligibilityStatus === "eligible"
@@ -619,7 +677,7 @@ export default function OpportunitiesPage() {
                           {match.eligibilityStatus === "eligible"
                             ? `${match.percentage}% Match`
                             : match.eligibilityStatus === "needs_verification"
-                            ? `${match.percentage}% • Needs Verification`
+                            ? `${match.percentage}% • NEEDS VERIFICATION`
                             : match.eligibilityStatus === "expired"
                             ? "Expired"
                             : `${match.percentage}% • Criteria Mismatch`}
@@ -640,9 +698,27 @@ export default function OpportunitiesPage() {
                       </button>
                     </div>
 
-                    <div>
-                      <h3 className="text-lg font-bold text-indigo-950">{opp.title}</h3>
-                      <p className="text-xs font-medium text-slate-500">{opp.organisation}</p>
+                    <div className="flex items-start gap-3">
+                      {opp.companyLogo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={opp.companyLogo}
+                          alt={opp.organisation}
+                          className="w-10 h-10 rounded-xl object-contain border border-slate-100 bg-white shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                          <Building2 className="w-5 h-5 text-indigo-500" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="text-base sm:text-lg font-bold text-indigo-950 leading-snug">
+                          {opp.title}
+                        </h3>
+                        <p className="text-xs font-medium text-slate-500">
+                          {opp.organisation}
+                        </p>
+                      </div>
                     </div>
 
                     <p className="text-xs sm:text-sm text-slate-700 leading-relaxed line-clamp-3">
@@ -656,7 +732,7 @@ export default function OpportunitiesPage() {
                       </span>
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100">
                         <Clock className="w-3.5 h-3.5 text-violet-500" />
-                        {opp.deadline ? `Expires: ${opp.deadline}` : "Deadline not specified"}
+                        {opp.deadline ? `Deadline: ${opp.deadline}` : "Check official window"}
                       </span>
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50/70 text-indigo-800">
                         {opp.stipendOrSalary}
@@ -697,8 +773,7 @@ export default function OpportunitiesPage() {
                       ) : (
                         opp.sourceName
                       )}{" "}
-                      • {opp.datePublished ? `Published: ${opp.datePublished} • ` : ""}
-                      Verified: {opp.lastVerifiedAt}
+                      • Verified: {opp.lastVerifiedAt}
                     </p>
                   </div>
 
@@ -761,7 +836,11 @@ export default function OpportunitiesPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold shadow-xs"
                         >
-                          {opp.isDemo ? "View Original" : "Apply on Himalayas"}
+                          {badge === "OFFICIAL SOURCE"
+                            ? "Visit Official Portal"
+                            : badge === "LIVE API"
+                            ? `Apply on ${opp.sourceName}`
+                            : "View Original"}
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
@@ -799,7 +878,6 @@ export default function OpportunitiesPage() {
             })}
           </div>
 
-          {/* Pagination for Live Internships */}
           {internshipSourceMode === "live" && tab === "internship" && liveState.totalCount > 20 && (
             <div className="flex items-center justify-between pt-2">
               <button
@@ -811,7 +889,7 @@ export default function OpportunitiesPage() {
                 ← Previous Page
               </button>
               <span className="text-xs font-semibold text-slate-600">
-                Page {liveState.page} • {liveState.totalCount} total listings
+                Page {liveState.page} • {liveState.totalCount} live API listings
               </span>
               <button
                 type="button"
@@ -831,9 +909,6 @@ export default function OpportunitiesPage() {
         <h2 className="text-base font-bold text-indigo-950">
           Verified Official Portals &amp; Public Opportunity Directories
         </h2>
-        <p className="text-xs text-slate-500">
-          Explore live external listings directly on these authorised portals and career platforms:
-        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {APPROVED_OUTBOUND_DIRECTORIES.map((dir) => (
             <a
