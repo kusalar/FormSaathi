@@ -113,6 +113,13 @@ export function matchOpportunity(
         gaps.push(`Preferred branches: ${opp.requiredBranches.slice(0, 3).join(", ")}`);
       }
     }
+  } else if (opp.engineeringDomain === "ece_vlsi") {
+    const userBranchTokens = normalizeBranch(profile.branch || "");
+    if (userBranchTokens.includes("ece") || userBranchTokens.includes("eee")) {
+      totalWeight += 15;
+      earnedWeight += 15;
+      reasons.push("Relevant to ECE / Electronics & VLSI track");
+    }
   }
 
   // 3. Academic Year (weight 15)

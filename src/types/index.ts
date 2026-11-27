@@ -107,6 +107,32 @@ export type ApplicationTrackingStatus =
   | "selected"
   | "rejected";
 
+export type SourceBadgeType =
+  | "LIVE API"
+  | "OFFICIAL SOURCE"
+  | "NEEDS VERIFICATION"
+  | "DEMO";
+
+export type IndiaEligibilityType =
+  | "india_based"
+  | "accepts_india"
+  | "worldwide"
+  | "location_unknown"
+  | "restricted_other";
+
+export type EngineeringDomainType =
+  | "ece_vlsi"
+  | "cse_software"
+  | "research"
+  | "general_engineering"
+  | "other";
+
+export type ApplicationStatusLabel =
+  | "Open"
+  | "Upcoming"
+  | "Closed"
+  | "Unverified";
+
 export interface Opportunity {
   id: string;
   isDemo: boolean;
@@ -139,6 +165,11 @@ export interface Opportunity {
   locationRestrictions?: string[];
   hasAcademicCriteria?: boolean;
   lastFetchedAt?: string;
+  sourceBadge?: SourceBadgeType;
+  indiaEligibility?: IndiaEligibilityType;
+  engineeringDomain?: EngineeringDomainType;
+  applicationStatusLabel?: ApplicationStatusLabel;
+  companyLogo?: string | null;
 }
 
 export interface ApplicationTrackingItem {
@@ -147,6 +178,69 @@ export interface ApplicationTrackingItem {
   status: ApplicationTrackingStatus;
   notes: string;
   updatedAt: string;
+}
+
+export type DataSourceType =
+  | "LIVE API"
+  | "OFFICIAL SOURCE"
+  | "VERIFIED INFORMATION"
+  | "NEEDS VERIFICATION"
+  | "DEMO";
+
+export type ScholarshipApplicationStatus =
+  | "OPEN"
+  | "UPCOMING"
+  | "CLOSED"
+  | "UNVERIFIED"
+  | "INFORMATION_ONLY";
+
+export type ScholarshipGroupCategory =
+  | "Government"
+  | "State"
+  | "West Bengal"
+  | "Corporate"
+  | "Engineering"
+  | "Merit"
+  | "Need-Based"
+  | "Women in STEM"
+  | "Research"
+  | "First-Gen";
+
+export interface NormalizedScholarship {
+  id: string;
+  isDemo: boolean;
+  title: string;
+  provider: string;
+  description: string;
+  category: ScholarshipGroupCategory;
+  scholarshipType: string;
+  academicYear: string;
+  eligibleDegrees: string[];
+  eligibleBranches: string[];
+  eligibleAcademicYears: string[];
+  eligibleGraduationYears: string[];
+  minAcademicPercentage: number | null;
+  maxIncomeLakh: number | null;
+  eligibleInstitutionTypes: string[];
+  eligibleStates: string[];
+  eligibleLocations: string[];
+  specialConditions: string[];
+  amountLabel: string;
+  benefitType: string;
+  duration: string;
+  openingDate: string | null;
+  deadline: string | null;
+  applicationUrl: string | null;
+  officialSourceUrl: string;
+  sourceName: string;
+  dataSourceType: DataSourceType;
+  applicationStatus: ScholarshipApplicationStatus;
+  freshVsRenewalNote: string;
+  publishedDate: string | null;
+  lastVerifiedAt: string;
+  lastFetchedAt: string;
+  verificationNotes: string;
+  requiredDocuments: string[];
 }
 
 export interface ActivityItem {

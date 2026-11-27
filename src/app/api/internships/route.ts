@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  getLastSuccessfulHimalayasFetch,
-  HimalayasInternshipProvider,
-} from "@/lib/opportunities/providers/himalayas";
+import { fetchAllInternships } from "@/lib/opportunities/providers/aggregator";
+import { getLastSuccessfulHimalayasFetch } from "@/lib/opportunities/providers/himalayas";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,26 +10,26 @@ export async function GET(request: Request) {
   const page = Math.max(1, Number(searchParams.get("page") || "1") || 1);
   const refresh = searchParams.get("refresh") === "1";
 
-  const result = await HimalayasInternshipProvider.searchInternships({
+  const aggregated = await fetchAllInternships({
     query,
     country,
     page,
     refresh,
   });
 
-  if (!result.ok) {
-    const status = result.rateLimited ? 429 : 503;
-    return NextResponse.json(
-      {
-        ...result,
-        lastSuccessfulFetchAt: getLastSuccessfulHimalayasFetch(),
-      },
-      { status }
-    );
-  }
+  const liveProvidersOk = aggregated.providers.some(
+    (p) => (p.id === "himalayas" || p.id === "remotive") && p.ok
+  );
 
   return NextResponse.json({
-    ...result,
-    lastSuccessfulFetchAt: result.fetchedAt,
+    ok: aggregated.ok,
+    isLive: liveProvidersOk,
+    providerName: "Multi-Provider (Himalayas + Remotive + Official Indian Portals)",
+    fetchedAt: aggregated.fetchedAt,
+    lastSuccessfulFetchAt: getLastSuccessfulHimalayasFetch() || aggregated.fetchedAt,
+    totalCount: aggregated.totalLiveCount,
+    page: aggregated.page,
+    providers: aggregated.providers,
+    opportunities: aggregated.opportunities,
   });
 }
