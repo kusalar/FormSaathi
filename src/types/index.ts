@@ -8,13 +8,19 @@ export interface LocalizedText {
 
 export interface StudentProfile {
   name: string;
+  collegeName?: string;
   course: string;
+  branch?: string;
   year: string;
+  graduationYear?: string;
   institutionType: "Government" | "Private" | "Aided" | "";
   annualIncome: string; // e.g. "Below ₹2.5 Lakh", "₹2.5L - ₹5L", "₹5L - ₹8L", "Above ₹8L"
   state: string;
   category: "General" | "OBC" | "SC" | "ST" | "EWS" | "";
   firstGen: boolean;
+  skills?: string;
+  preferredCategories?: string[];
+  preferredWorkMode?: "Remote" | "Hybrid" | "On-site" | "Any" | "";
 }
 
 export interface DocumentItem {

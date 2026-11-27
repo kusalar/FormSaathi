@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, ShieldCheck, CheckCircle2, Save, RotateCcw } from "lucide-react";
+import {
+  User,
+  ShieldCheck,
+  CheckCircle2,
+  Save,
+  RotateCcw,
+  Cloud,
+  AlertCircle,
+} from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import {
   COURSE_OPTIONS,
@@ -13,6 +21,14 @@ import {
 import { StudentProfile } from "@/types";
 import { t, UI_TEXT } from "@/lib/i18n";
 
+const OPPORTUNITY_CATEGORIES = ["Merit", "STEM", "State", "Means", "First-Gen"];
+const WORK_MODES: Array<NonNullable<StudentProfile["preferredWorkMode"]>> = [
+  "Remote",
+  "Hybrid",
+  "On-site",
+  "Any",
+];
+
 export default function ProfilePage() {
   const {
     profile,
@@ -23,14 +39,24 @@ export default function ProfilePage() {
     logActivity,
     lang,
     user,
+    cloudSyncStatus,
+    cloudSyncError,
   } = useApp();
   const [form, setForm] = useState<StudentProfile>(profile);
   const [nameError, setNameError] = useState<string | null>(null);
 
+  const toggleCategory = (cat: string) => {
+    const current = form.preferredCategories || [];
+    const next = current.includes(cat)
+      ? current.filter((c) => c !== cat)
+      : [...current, cat];
+    setForm({ ...form, preferredCategories: next });
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      setNameError("Please enter your first name or nickname.");
+      setNameError("Please enter your full name or nickname.");
       showToast("Name required", "Please enter a name before saving.", "warning");
       return;
     }
@@ -46,7 +72,9 @@ export default function ProfilePage() {
     );
     showToast(
       "Profile Saved",
-      "Your scholarship eligibility matches are now updated.",
+      user
+        ? "Saved locally and syncing to your cloud account."
+        : "Your scholarship eligibility matches are now updated.",
       "success"
     );
   };
@@ -56,16 +84,23 @@ export default function ProfilePage() {
       <div className="rounded-3xl bg-gradient-to-r from-indigo-950 to-violet-900 text-white p-6 sm:p-8 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-2xl font-extrabold">
-            {(form.name?.[0] || "S").toUpperCase()}
+            {(form.name?.[0] || "G").toUpperCase()}
           </div>
           <div>
             <h1 className="text-2xl font-extrabold flex items-center gap-2">
               <User className="w-5 h-5 text-violet-300" />
               {t(UI_TEXT.nav.profile, lang)}
             </h1>
-            <p className="text-sm text-indigo-200 mt-0.5">
+            <p className="text-sm text-indigo-200 mt-0.5 flex items-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5" />
               {user
-                ? `Synced with your account (${user.email})`
+                ? `Synced with ${user.email} (${
+                    cloudSyncStatus === "saving"
+                      ? "Saving..."
+                      : cloudSyncStatus === "error"
+                      ? "Sync Error"
+                      : "Cloud Synced"
+                  })`
                 : "Local Demo Mode • Sign in to sync across devices"}
             </p>
           </div>
@@ -78,6 +113,16 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
+
+      {cloudSyncError && (
+        <div
+          role="alert"
+          className="rounded-2xl bg-rose-50 border border-rose-200 px-4 py-3 text-xs text-rose-800 flex items-start gap-2.5"
+        >
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <p>Cloud sync warning: {cloudSyncError}</p>
+        </div>
+      )}
 
       {/* Privacy Guarantee */}
       <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs sm:text-sm text-emerald-900 flex items-start gap-3">
@@ -95,7 +140,7 @@ export default function ProfilePage() {
               htmlFor="student-name"
               className="block text-xs font-bold text-indigo-950 mb-1.5"
             >
-              First Name / Nickname
+              Full Name
             </label>
             <input
               id="student-name"
@@ -119,10 +164,27 @@ export default function ProfilePage() {
 
           <div>
             <label
+              htmlFor="student-college"
+              className="block text-xs font-bold text-indigo-950 mb-1.5"
+            >
+              College / University Name
+            </label>
+            <input
+              id="student-college"
+              type="text"
+              value={form.collegeName || ""}
+              onChange={(e) => setForm({ ...form, collegeName: e.target.value })}
+              placeholder="e.g. Jadavpur University"
+              className="w-full rounded-xl border border-indigo-200 px-3.5 py-2.5 text-sm text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label
               htmlFor="student-course"
               className="block text-xs font-bold text-indigo-950 mb-1.5"
             >
-              Course / Degree
+              Degree / Course
             </label>
             <select
               id="student-course"
@@ -141,10 +203,27 @@ export default function ProfilePage() {
 
           <div>
             <label
+              htmlFor="student-branch"
+              className="block text-xs font-bold text-indigo-950 mb-1.5"
+            >
+              Branch / Specialization
+            </label>
+            <input
+              id="student-branch"
+              type="text"
+              value={form.branch || ""}
+              onChange={(e) => setForm({ ...form, branch: e.target.value })}
+              placeholder="e.g. Computer Science, Physics"
+              className="w-full rounded-xl border border-indigo-200 px-3.5 py-2.5 text-sm text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label
               htmlFor="student-year"
               className="block text-xs font-bold text-indigo-950 mb-1.5"
             >
-              Current Year of Study
+              Current Academic Year
             </label>
             <select
               id="student-year"
@@ -159,6 +238,23 @@ export default function ProfilePage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="student-grad"
+              className="block text-xs font-bold text-indigo-950 mb-1.5"
+            >
+              Expected Graduation Year
+            </label>
+            <input
+              id="student-grad"
+              type="text"
+              value={form.graduationYear || ""}
+              onChange={(e) => setForm({ ...form, graduationYear: e.target.value })}
+              placeholder="e.g. 2027"
+              className="w-full rounded-xl border border-indigo-200 px-3.5 py-2.5 text-sm text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
 
           <div>
@@ -215,7 +311,7 @@ export default function ProfilePage() {
               htmlFor="student-state"
               className="block text-xs font-bold text-indigo-950 mb-1.5"
             >
-              Home State / UT
+              Home State / Location
             </label>
             <select
               id="student-state"
@@ -230,6 +326,75 @@ export default function ProfilePage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="student-workmode"
+              className="block text-xs font-bold text-indigo-950 mb-1.5"
+            >
+              Preferred Work / Learning Mode
+            </label>
+            <select
+              id="student-workmode"
+              value={form.preferredWorkMode || ""}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  preferredWorkMode: e.target.value as StudentProfile["preferredWorkMode"],
+                })
+              }
+              className="w-full rounded-xl border border-indigo-200 px-3.5 py-2.5 text-sm text-indigo-950 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Select mode...</option>
+              {WORK_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="student-skills"
+            className="block text-xs font-bold text-indigo-950 mb-1.5"
+          >
+            Skills &amp; Career Interests
+          </label>
+          <input
+            id="student-skills"
+            type="text"
+            value={form.skills || ""}
+            onChange={(e) => setForm({ ...form, skills: e.target.value })}
+            placeholder="e.g. Python, Web Development, Data Science, Teaching"
+            className="w-full rounded-xl border border-indigo-200 px-3.5 py-2.5 text-sm text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <div>
+          <span className="block text-xs font-bold text-indigo-950 mb-2">
+            Preferred Opportunity Categories
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {OPPORTUNITY_CATEGORIES.map((cat) => {
+              const selected = (form.preferredCategories || []).includes(cat);
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition ${
+                    selected
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-indigo-50 text-indigo-800 hover:bg-indigo-100"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -248,7 +413,9 @@ export default function ProfilePage() {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <span className="text-xs text-slate-500 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            Stored locally in your browser only
+            {user
+              ? "Saved to your encrypted Supabase account"
+              : "Stored locally in your browser only"}
           </span>
           <div className="flex items-center gap-2.5">
             <button
@@ -257,13 +424,19 @@ export default function ProfilePage() {
                 resetProfile();
                 setForm({
                   name: "GUEST",
+                  collegeName: "",
                   course: "",
+                  branch: "",
                   year: "",
+                  graduationYear: "",
                   institutionType: "",
                   annualIncome: "",
                   state: "",
                   category: "",
                   firstGen: true,
+                  skills: "",
+                  preferredCategories: [],
+                  preferredWorkMode: "",
                 });
                 setNameError(null);
               }}
@@ -274,10 +447,11 @@ export default function ProfilePage() {
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 transition focus:outline-none focus:ring-4 focus:ring-indigo-300"
+              disabled={cloudSyncStatus === "saving"}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-indigo-500/20 transition focus:outline-none focus:ring-4 focus:ring-indigo-300"
             >
               <Save className="w-4 h-4" />
-              Save Profile
+              {cloudSyncStatus === "saving" ? "Saving..." : "Save Profile"}
             </button>
           </div>
         </div>

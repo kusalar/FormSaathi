@@ -79,14 +79,24 @@ npm run dev
 ```
 
 ### Supabase & Vercel Setup
-1. **Run SQL Migration**: In **Supabase Dashboard → SQL Editor**, paste and run `supabase/migrations/0001_formsaathi_schema.sql`. This creates `public_opportunities`, `profiles`, `student_preferences`, `saved_opportunities`, and `application_tracking` with Row Level Security (RLS) enabled on every user-specific table.
-2. **Auth Redirect URLs**: In **Supabase Dashboard → Authentication → URL Configuration**, add:
-   - `http://localhost:3000/auth/callback`
-   - `https://your-vercel-domain.vercel.app/auth/callback`
-   - `https://your-vercel-domain.vercel.app/auth/reset-password`
+1. **Run SQL Migrations**: In **Supabase Dashboard → SQL Editor**, run:
+   - `supabase/migrations/0001_formsaathi_schema.sql` (creates `public_opportunities`, `profiles`, `student_preferences`, `saved_opportunities`, and `application_tracking` with Row Level Security enabled on every user-specific table, plus the `on_auth_user_created` trigger).
+   - `supabase/migrations/0002_extended_student_profile.sql` (adds `college_name`, `branch`, `graduation_year`, `skills`, `preferred_categories`, and `preferred_work_mode` to `student_preferences`).
+2. **Email Verification & Password Reset**:
+   - In **Supabase Dashboard → Authentication → Providers → Email**, keep **Confirm email** enabled.
+   - In **Supabase Dashboard → Authentication → URL Configuration**, set **Site URL** to your production Vercel URL (`https://your-vercel-domain.vercel.app`) and add these **Redirect URLs**:
+     - `http://localhost:3000/auth/callback`
+     - `http://localhost:3000/auth/reset-password`
+     - `https://your-vercel-domain.vercel.app/auth/callback`
+     - `https://your-vercel-domain.vercel.app/auth/reset-password`
 3. **Environment Variables**:
-   - **Locally**: Enter `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (never commit `.env.local`).
+   - **Locally**: Enter `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (never commit `.env.local`; no service-role key is used in client code).
    - **Vercel**: Add the exact same two variables in **Vercel Dashboard → Project → Settings → Environment Variables** and redeploy.
+
+### Security & Demo Mode
+- **Row Level Security (RLS)**: Every user-specific table enforces `auth.uid()` ownership policies; `public_opportunities` is read-only and separated from private student records.
+- **Explicit Migration**: If a signed-in user has existing `localStorage` data, FormSaathi offers an explicit one-time **Import to Account / Dismiss** banner and never silently overwrites cloud data.
+- **Demo Mode**: Without Supabase credentials, FormSaathi runs cleanly in local browser demo mode using `localStorage` and clearly labelled `DEMONSTRATION` scholarships.
 
 Open **`http://localhost:3000`** in Chrome or Edge.
 

@@ -8,6 +8,12 @@ export interface CloudUserData {
   checkedDocs: Record<string, boolean>;
 }
 
+export interface DbWriteResult {
+  ok: boolean;
+  error?: string;
+  partialSchema?: boolean;
+}
+
 export async function loadCloudUserData(
   supabase: SupabaseClient,
   userId: string
@@ -18,6 +24,9 @@ export async function loadCloudUserData(
     supabase.from("saved_opportunities").select("scholarship_id").eq("user_id", userId),
     supabase.from("application_tracking").select("scholarship_id, checked_docs").eq("user_id", userId),
   ]);
+
+  if (profileRes.error) throw profileRes.error;
+  if (prefsRes.error) throw prefsRes.error;
 
   const mergedProfile: Partial<StudentProfile> = {};
   if (profileRes.data) {
@@ -35,6 +44,16 @@ export async function loadCloudUserData(
     if (prefsRes.data.annual_income) mergedProfile.annualIncome = prefsRes.data.annual_income;
     if (prefsRes.data.state) mergedProfile.state = prefsRes.data.state;
     if (prefsRes.data.category) mergedProfile.category = prefsRes.data.category;
+    if (prefsRes.data.college_name) mergedProfile.collegeName = prefsRes.data.college_name;
+    if (prefsRes.data.branch) mergedProfile.branch = prefsRes.data.branch;
+    if (prefsRes.data.graduation_year) mergedProfile.graduationYear = prefsRes.data.graduation_year;
+    if (prefsRes.data.skills) mergedProfile.skills = prefsRes.data.skills;
+    if (Array.isArray(prefsRes.data.preferred_categories)) {
+      mergedProfile.preferredCategories = prefsRes.data.preferred_categories;
+    }
+    if (prefsRes.data.preferred_work_mode) {
+      mergedProfile.preferredWorkMode = prefsRes.data.preferred_work_mode;
+    }
   }
 
   const savedScholarships = (savedRes.data || []).map((r) => r.scholarship_id);
@@ -55,26 +74,58 @@ export async function upsertCloudProfile(
   userId: string,
   profile: StudentProfile,
   lang: Language
-) {
-  await Promise.all([
-    supabase.from("profiles").upsert({
-      id: userId,
-      full_name: profile.name,
-      first_gen: profile.firstGen,
-      preferred_language: lang,
-      updated_at: new Date().toISOString(),
-    }),
-    supabase.from("student_preferences").upsert({
-      user_id: userId,
-      course: profile.course,
-      study_year: profile.year,
-      institution_type: profile.institutionType,
-      annual_income: profile.annualIncome,
-      state: profile.state,
-      category: profile.category,
-      updated_at: new Date().toISOString(),
-    }),
-  ]);
+): Promise<DbWriteResult> {
+  const { error: profileErr } = await supabase.from("profiles").upsert({
+    id: userId,
+    full_name: profile.name,
+    first_gen: profile.firstGen,
+    preferred_language: lang,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (profileErr) {
+    return { ok: false, error: profileErr.message };
+  }
+
+  const basePrefs = {
+    user_id: userId,
+    course: profile.course,
+    study_year: profile.year,
+    institution_type: profile.institutionType,
+    annual_income: profile.annualIncome,
+    state: profile.state,
+    category: profile.category,
+    updated_at: new Date().toISOString(),
+  };
+
+  const extendedPrefs = {
+    ...basePrefs,
+    college_name: profile.collegeName || "",
+    branch: profile.branch || "",
+    graduation_year: profile.graduationYear || "",
+    skills: profile.skills || "",
+    preferred_categories: profile.preferredCategories || [],
+    preferred_work_mode: profile.preferredWorkMode || "",
+  };
+
+  const { error: extErr } = await supabase
+    .from("student_preferences")
+    .upsert(extendedPrefs);
+
+  if (!extErr) {
+    return { ok: true };
+  }
+
+  // Graceful fallback if 0002_extended_student_profile.sql hasn't been executed yet
+  const { error: baseErr } = await supabase
+    .from("student_preferences")
+    .upsert(basePrefs);
+
+  if (baseErr) {
+    return { ok: false, error: baseErr.message };
+  }
+
+  return { ok: true, partialSchema: true };
 }
 
 export async function syncCloudSavedOpportunity(
@@ -82,29 +133,32 @@ export async function syncCloudSavedOpportunity(
   userId: string,
   scholarshipId: string,
   shouldSave: boolean
-) {
+): Promise<DbWriteResult> {
   if (shouldSave) {
-    await supabase
+    const { error } = await supabase
       .from("saved_opportunities")
       .upsert(
         { user_id: userId, scholarship_id: scholarshipId },
         { onConflict: "user_id,scholarship_id" }
       );
+    if (error) return { ok: false, error: error.message };
   } else {
-    await supabase
+    const { error } = await supabase
       .from("saved_opportunities")
       .delete()
       .eq("user_id", userId)
       .eq("scholarship_id", scholarshipId);
+    if (error) return { ok: false, error: error.message };
   }
+  return { ok: true };
 }
 
 export async function syncCloudCheckedDocs(
   supabase: SupabaseClient,
   userId: string,
   checkedDocs: Record<string, boolean>
-) {
-  await supabase.from("application_tracking").upsert(
+): Promise<DbWriteResult> {
+  const { error } = await supabase.from("application_tracking").upsert(
     {
       user_id: userId,
       scholarship_id: "global-checklist",
@@ -114,4 +168,6 @@ export async function syncCloudCheckedDocs(
     },
     { onConflict: "user_id,scholarship_id" }
   );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

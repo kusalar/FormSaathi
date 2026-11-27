@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   User,
@@ -27,6 +27,7 @@ import { Language } from "@/types";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     lang,
     setLang,
@@ -240,7 +241,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {user ? (
               <button
                 type="button"
-                onClick={() => void signOut()}
+                onClick={async () => {
+                  await signOut();
+                  router.push("/");
+                  router.refresh();
+                }}
                 title={`Signed in as ${user.email || "student"}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-indigo-200 hover:bg-rose-50 hover:border-rose-200 text-xs font-semibold text-indigo-950 hover:text-rose-700 transition"
               >

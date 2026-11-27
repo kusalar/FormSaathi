@@ -66,6 +66,8 @@ interface AppState {
   docProgress: number;
   user: AuthUserSummary | null;
   supabaseConfigured: boolean;
+  cloudSyncStatus: "idle" | "saving" | "synced" | "error";
+  cloudSyncError: string | null;
   pendingLocalMigration: boolean;
   migrateLocalToSupabase: () => Promise<void>;
   dismissLocalMigration: () => void;
@@ -74,13 +76,19 @@ interface AppState {
 
 const DEFAULT_PROFILE: StudentProfile = {
   name: "GUEST",
+  collegeName: "",
   course: "",
+  branch: "",
   year: "",
+  graduationYear: "",
   institutionType: "",
   annualIncome: "",
   state: "",
   category: "",
   firstGen: true,
+  skills: "",
+  preferredCategories: [],
+  preferredWorkMode: "",
 };
 
 function getInitialGreeting(lang: Language): VoiceMessage {
@@ -143,6 +151,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
   const [user, setUser] = useState<AuthUserSummary | null>(null);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<
+    "idle" | "saving" | "synced" | "error"
+  >("idle");
+  const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
   const [pendingLocalMigration, setPendingLocalMigration] = useState<boolean>(false);
   const supabaseConfigured = isSupabaseConfigured();
   const [activities, setActivities] = useState<ActivityItem[]>([
@@ -205,15 +217,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const supabase = createSupabaseClient();
     if (!supabase) return;
 
-    const hydrateFromCloud = async (authUser: AuthUserSummary) => {
+    const hydrateFromCloud = async (
+      authUser: AuthUserSummary,
+      metaFullName?: string
+    ) => {
       setUser(authUser);
+      setCloudSyncError(null);
       try {
         const cloud = await loadCloudUserData(supabase, authUser.id);
         const cloudHasProfile = Boolean(
           cloud.profile.course || cloud.profile.year || cloud.profile.state
         );
-        if (cloudHasProfile || cloud.profile.name) {
-          setProfile((prev) => ({ ...prev, ...cloud.profile }));
+        const resolvedName = cloud.profile.name || metaFullName || "";
+        if (cloudHasProfile || resolvedName) {
+          setProfile((prev) => ({
+            ...prev,
+            ...cloud.profile,
+            ...(resolvedName ? { name: resolvedName } : {}),
+          }));
         }
         if (cloud.lang) setLangState(cloud.lang);
         if (cloud.savedScholarships.length > 0) {
@@ -222,6 +243,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (Object.keys(cloud.checkedDocs).length > 0) {
           setCheckedDocs(cloud.checkedDocs);
         }
+        setCloudSyncStatus("synced");
 
         // Check if explicit one-time localStorage migration should be offered
         const migratedFlag = window.localStorage.getItem(
@@ -235,22 +257,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setPendingLocalMigration(true);
           }
         }
-      } catch {
-        // Keep local state if cloud fetch fails
+      } catch (err) {
+        setCloudSyncStatus("error");
+        setCloudSyncError(
+          err instanceof Error ? err.message : "Could not load cloud profile."
+        );
       }
     };
 
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        hydrateFromCloud({ id: data.user.id, email: data.user.email });
+        const metaName =
+          typeof data.user.user_metadata?.full_name === "string"
+            ? data.user.user_metadata.full_name
+            : undefined;
+        hydrateFromCloud({ id: data.user.id, email: data.user.email }, metaName);
       }
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        hydrateFromCloud({ id: session.user.id, email: session.user.email });
+        const metaName =
+          typeof session.user.user_metadata?.full_name === "string"
+            ? session.user.user_metadata.full_name
+            : undefined;
+        hydrateFromCloud(
+          { id: session.user.id, email: session.user.email },
+          metaName
+        );
       } else {
         setUser(null);
+        setCloudSyncStatus("idle");
+        setCloudSyncError(null);
         setPendingLocalMigration(false);
       }
     });
@@ -302,7 +340,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (user && supabaseConfigured) {
         const supabase = createSupabaseClient();
         if (supabase) {
-          void upsertCloudProfile(supabase, user.id, merged, lang);
+          setCloudSyncStatus("saving");
+          setCloudSyncError(null);
+          void upsertCloudProfile(supabase, user.id, merged, lang).then((res) => {
+            if (res.ok) {
+              setCloudSyncStatus("synced");
+            } else {
+              setCloudSyncStatus("error");
+              setCloudSyncError(res.error || "Failed to save profile to cloud.");
+              showToast("Cloud sync error", res.error || "Saved locally only.", "warning");
+            }
+          });
         }
       }
       return merged;
@@ -315,7 +363,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (user && supabaseConfigured) {
         const supabase = createSupabaseClient();
         if (supabase) {
-          void syncCloudCheckedDocs(supabase, user.id, updated);
+          void syncCloudCheckedDocs(supabase, user.id, updated).then((res) => {
+            if (!res.ok) {
+              showToast("Checklist sync warning", res.error, "warning");
+            }
+          });
         }
       }
       return updated;
@@ -329,7 +381,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (user && supabaseConfigured) {
         const supabase = createSupabaseClient();
         if (supabase) {
-          void syncCloudSavedOpportunity(supabase, user.id, id, !exists);
+          void syncCloudSavedOpportunity(supabase, user.id, id, !exists).then((res) => {
+            if (!res.ok) {
+              showToast("Bookmark sync warning", res.error, "warning");
+            }
+          });
         }
       }
       showToast(
@@ -345,11 +401,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!user || !supabaseConfigured) return;
     const supabase = createSupabaseClient();
     if (!supabase) return;
-    await upsertCloudProfile(supabase, user.id, profile, lang);
-    await syncCloudCheckedDocs(supabase, user.id, checkedDocs);
+    setCloudSyncStatus("saving");
+    const profRes = await upsertCloudProfile(supabase, user.id, profile, lang);
+    const docsRes = await syncCloudCheckedDocs(supabase, user.id, checkedDocs);
     for (const sId of savedScholarships) {
       await syncCloudSavedOpportunity(supabase, user.id, sId, true);
     }
+    if (!profRes.ok || !docsRes.ok) {
+      setCloudSyncStatus("error");
+      showToast("Migration incomplete", profRes.error || docsRes.error, "warning");
+      return;
+    }
+    setCloudSyncStatus("synced");
     window.localStorage.setItem(`formsaathi_migrated_${user.id}`, "true");
     setPendingLocalMigration(false);
     showToast("Data imported", "Your local profile & checklist are now saved to your account.", "success");
@@ -577,6 +640,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         docProgress,
         user,
         supabaseConfigured,
+        cloudSyncStatus,
+        cloudSyncError,
         pendingLocalMigration,
         migrateLocalToSupabase,
         dismissLocalMigration,
