@@ -2,6 +2,10 @@ import { Language, StudentProfile, VoiceMessage } from "@/types";
 import { COURSE_OPTIONS, INCOME_OPTIONS, STATE_OPTIONS, YEAR_OPTIONS, SCHOLARSHIPS, evaluateEligibility } from "./scholarships";
 import { DEMO_OPPORTUNITIES } from "./opportunities/sources";
 import { matchOpportunity } from "./opportunities/matcher";
+import { NATIONAL_OFFICIAL_SCHOLARSHIPS } from "./scholarships/providers/national";
+import { WEST_BENGAL_SCHOLARSHIPS } from "./scholarships/providers/westBengal";
+import { CORPORATE_SCHOLARSHIPS } from "./scholarships/providers/corporate";
+import { matchNormalizedScholarship } from "./scholarships/matcher";
 
 // Type declarations for browser Web Speech API
 interface SpeechRecognitionEventLike {
@@ -472,6 +476,107 @@ export function generateAssistantReply(
           label: summaryStr,
           confirmed: false,
         },
+      },
+    };
+  }
+
+  // Scholarship discovery intents (government, West Bengal, engineering, closing soon)
+  const wantsScholarship =
+    lower.includes("scholarship") ||
+    lower.includes("scholarships") ||
+    lower.includes("छात्रवृत्ति") ||
+    lower.includes("বৃত্তি");
+
+  if (wantsScholarship && !course && !year && !inst && !income && !state) {
+    const wantsGov =
+      lower.includes("government") ||
+      lower.includes("govt") ||
+      lower.includes("nsp") ||
+      lower.includes("सरकारी") ||
+      lower.includes("সরকারি");
+    const wantsWb =
+      lower.includes("west bengal") ||
+      lower.includes("svmcm") ||
+      lower.includes("aikyashree") ||
+      lower.includes("oasis") ||
+      lower.includes("पশ্চिम बंगाल") ||
+      lower.includes("পশ্চিমবঙ্গ");
+    const wantsEng =
+      lower.includes("engineering") ||
+      lower.includes("b.tech") ||
+      lower.includes("stem") ||
+      lower.includes("इंजीनियरिंग") ||
+      lower.includes("ইঞ্জিনিয়ারিং");
+    const wantsClosingSoon =
+      lower.includes("closing") ||
+      lower.includes("deadline") ||
+      lower.includes("अंतिम तिथि") ||
+      lower.includes("শেষ তারিখ");
+
+    const allOfficial = [
+      ...NATIONAL_OFFICIAL_SCHOLARSHIPS,
+      ...WEST_BENGAL_SCHOLARSHIPS,
+      ...CORPORATE_SCHOLARSHIPS,
+    ];
+
+    const filteredPool = allOfficial.filter((sch) => {
+      if (wantsWb) return sch.category === "West Bengal";
+      if (wantsGov) return sch.category === "Government" || sch.category === "West Bengal";
+      if (wantsEng) return sch.eligibleDegrees.includes("B.Tech");
+      return true;
+    });
+
+    const ranked = filteredPool
+      .map((sch) => ({ sch, match: matchNormalizedScholarship(profile, sch) }))
+      .filter((x) => x.match.status !== "NOT_ELIGIBLE" && x.match.status !== "CLOSED")
+      .sort((a, b) => b.match.percentage - a.match.percentage)
+      .slice(0, 3);
+
+    const disclaimer =
+      lang === "hi"
+        ? "ध्यान दें: यह पात्रता प्रारंभिक है; अंतिम निर्णय आधिकारिक छात्रवृत्ति पोर्टल द्वारा किया जाता है।"
+        : lang === "bn"
+        ? "মনে রাখবেন: এই যোগ্যতা প্রাথমিক; চূড়ান্ত সিদ্ধান্ত অফিসিয়াল বৃত্তি কর্তৃপক্ষ নেয়।"
+        : "Note: Eligibility is preliminary—the official scholarship authority makes the final decision.";
+
+    const baseText = wantsClosingSoon
+      ? lang === "hi"
+        ? "आधिकारिक पोर्टल की अंतिम तिथियां समय-समय पर बदलती हैं, इसलिए कृपया सीधे पोर्टल पर जांचें।"
+        : lang === "bn"
+        ? "অফিসিয়াল পোর্টালের শেষ তারিখ পরিবর্তিত হয়, তাই সরাসরি পোর্টালে যাচাই করুন।"
+        : "Official portal deadlines vary by academic cycle; please verify current dates directly on each official portal."
+      : lang === "hi"
+      ? `यहाँ ${ranked.length} प्रासंगिक आधिकारिक छात्रवृत्ति स्रोत हैं:`
+      : lang === "bn"
+      ? `এখানে ${ranked.length}টি প্রাসঙ্গিক অফিসিয়াল বৃত্তি উৎস রয়েছে:`
+      : `Here are ${ranked.length} relevant official scholarship sources for you:`;
+
+    return {
+      detectedUpdates: {},
+      reply: {
+        role: "assistant",
+        lang,
+        text: `${baseText} ${disclaimer}`,
+        matchedScholarships: ranked.map(({ sch, match }) => ({
+          id: sch.id,
+          name: sch.title,
+          amount: `${sch.dataSourceType} • ${match.percentage}%`,
+          reasons:
+            match.satisfied.length > 0
+              ? match.satisfied
+              : ["Check official portal for current eligibility & dates"],
+        })),
+        actions: [
+          {
+            label:
+              lang === "hi"
+                ? "सभी छात्रवृत्तियाँ देखें"
+                : lang === "bn"
+                ? "সব বৃত্তি দেখুন"
+                : "Open Find Scholarships",
+            href: "/scholarships",
+          },
+        ],
       },
     };
   }

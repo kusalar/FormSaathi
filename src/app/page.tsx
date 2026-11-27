@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS, evaluateEligibility } from "@/lib/scholarships";
+import { NATIONAL_OFFICIAL_SCHOLARSHIPS } from "@/lib/scholarships/providers/national";
+import { WEST_BENGAL_SCHOLARSHIPS } from "@/lib/scholarships/providers/westBengal";
+import { CORPORATE_SCHOLARSHIPS } from "@/lib/scholarships/providers/corporate";
+import { matchNormalizedScholarship } from "@/lib/scholarships/matcher";
 import { DEMO_OPPORTUNITIES } from "@/lib/opportunities/sources";
 import { OFFICIAL_INDIAN_INTERNSHIP_SOURCES } from "@/lib/opportunities/providers/indianOfficialSources";
 import { matchOpportunity } from "@/lib/opportunities/matcher";
@@ -111,6 +115,19 @@ export default function HomePage() {
     opp: o,
     match: matchOpportunity(profile, o),
   })).sort((a, b) => b.match.percentage - a.match.percentage)[0];
+
+  const officialScholarshipsPool = [
+    ...NATIONAL_OFFICIAL_SCHOLARSHIPS,
+    ...WEST_BENGAL_SCHOLARSHIPS,
+    ...CORPORATE_SCHOLARSHIPS,
+  ]
+    .map((sch) => ({
+      sch,
+      match: matchNormalizedScholarship(profile, sch),
+    }))
+    .filter((x) => x.match.status !== "NOT_ELIGIBLE" && x.match.status !== "CLOSED")
+    .sort((a, b) => b.match.percentage - a.match.percentage)
+    .slice(0, 3);
 
   const topJob = DEMO_OPPORTUNITIES.filter(
     (o) => o.category === "job" && o.status === "active"
@@ -463,6 +480,67 @@ export default function HomePage() {
                 );
               })}
             </div>
+          </section>
+
+          {/* Official Scholarship Portals & West Bengal / Corporate Sources */}
+          <section className="rounded-3xl bg-white border border-indigo-100 shadow-sm p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-indigo-950">
+                  Official Scholarship Sources {profile.state === "West Bengal" ? "(Including West Bengal)" : ""}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Indicative matches from NSP, AICTE, SVMCM, Aikyashree &amp; HDFC Parivartan
+                </p>
+              </div>
+              <Link
+                href="/scholarships"
+                className="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+              >
+                Explore Scholarships
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {officialScholarshipsPool.length === 0 ? (
+              <p className="text-xs text-slate-600">
+                No verified current match found for your filters. Visit{" "}
+                <Link href="/scholarships" className="font-bold text-indigo-700 underline">
+                  Find Scholarships
+                </Link>{" "}
+                to browse official NSP, State, and Corporate portals.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {officialScholarshipsPool.map(({ sch, match }) => (
+                  <div
+                    key={sch.id}
+                    className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                          {sch.dataSourceType}
+                        </span>
+                        <span className="text-xs font-extrabold text-indigo-700">
+                          {match.percentage}%
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold text-indigo-950 leading-snug">
+                        {sch.title}
+                      </h3>
+                      <p className="text-xs text-slate-600 mt-1">{sch.provider}</p>
+                    </div>
+                    <Link
+                      href="/scholarships"
+                      className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                    >
+                      Check Eligibility <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Personalised Internships (Live) & Jobs (Demo) */}

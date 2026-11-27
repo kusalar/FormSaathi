@@ -180,6 +180,69 @@ export interface ApplicationTrackingItem {
   updatedAt: string;
 }
 
+export type DataSourceType =
+  | "LIVE API"
+  | "OFFICIAL SOURCE"
+  | "VERIFIED INFORMATION"
+  | "NEEDS VERIFICATION"
+  | "DEMO";
+
+export type ScholarshipApplicationStatus =
+  | "OPEN"
+  | "UPCOMING"
+  | "CLOSED"
+  | "UNVERIFIED"
+  | "INFORMATION_ONLY";
+
+export type ScholarshipGroupCategory =
+  | "Government"
+  | "State"
+  | "West Bengal"
+  | "Corporate"
+  | "Engineering"
+  | "Merit"
+  | "Need-Based"
+  | "Women in STEM"
+  | "Research"
+  | "First-Gen";
+
+export interface NormalizedScholarship {
+  id: string;
+  isDemo: boolean;
+  title: string;
+  provider: string;
+  description: string;
+  category: ScholarshipGroupCategory;
+  scholarshipType: string;
+  academicYear: string;
+  eligibleDegrees: string[];
+  eligibleBranches: string[];
+  eligibleAcademicYears: string[];
+  eligibleGraduationYears: string[];
+  minAcademicPercentage: number | null;
+  maxIncomeLakh: number | null;
+  eligibleInstitutionTypes: string[];
+  eligibleStates: string[];
+  eligibleLocations: string[];
+  specialConditions: string[];
+  amountLabel: string;
+  benefitType: string;
+  duration: string;
+  openingDate: string | null;
+  deadline: string | null;
+  applicationUrl: string | null;
+  officialSourceUrl: string;
+  sourceName: string;
+  dataSourceType: DataSourceType;
+  applicationStatus: ScholarshipApplicationStatus;
+  freshVsRenewalNote: string;
+  publishedDate: string | null;
+  lastVerifiedAt: string;
+  lastFetchedAt: string;
+  verificationNotes: string;
+  requiredDocuments: string[];
+}
+
 export interface ActivityItem {
   id: string;
   label: LocalizedText;
