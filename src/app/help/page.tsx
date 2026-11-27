@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import { HelpCircle, Mic, ShieldCheck, ExternalLink, Search, ChevronDown } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { t, UI_TEXT } from "@/lib/i18n";
@@ -45,21 +45,22 @@ const FAQS = [
   },
 ];
 
+const emptySubscribe = () => () => {};
+
 export default function HelpPage() {
   const { lang } = useApp();
   const [search, setSearch] = useState("");
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const [voiceDiag, setVoiceDiag] = useState<{ rec: boolean; synth: boolean }>({
-    rec: true,
-    synth: true,
-  });
-
-  useEffect(() => {
-    setVoiceDiag({
-      rec: Boolean(getSpeechRecognitionConstructor()),
-      synth: isSpeechSynthesisSupported(),
-    });
-  }, []);
+  const recSupported = useSyncExternalStore(
+    emptySubscribe,
+    () => Boolean(getSpeechRecognitionConstructor()),
+    () => true
+  );
+  const synthSupported = useSyncExternalStore(
+    emptySubscribe,
+    () => isSpeechSynthesisSupported(),
+    () => true
+  );
 
   const filteredFaqs = FAQS.filter((item) => {
     const q = search.trim().toLowerCase();
@@ -96,21 +97,21 @@ export default function HelpPage() {
           <div className="flex flex-wrap gap-2 pt-1">
             <span
               className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                voiceDiag.rec
+                recSupported
                   ? "bg-emerald-50 text-emerald-700"
                   : "bg-amber-50 text-amber-700"
               }`}
             >
-              Speech Input: {voiceDiag.rec ? "Supported" : "Fallback to Text"}
+              Speech Input: {recSupported ? "Supported" : "Fallback to Text"}
             </span>
             <span
               className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                voiceDiag.synth
+                synthSupported
                   ? "bg-emerald-50 text-emerald-700"
                   : "bg-amber-50 text-amber-700"
               }`}
             >
-              Spoken Output: {voiceDiag.synth ? "Supported" : "Unavailable"}
+              Spoken Output: {synthSupported ? "Supported" : "Unavailable"}
             </span>
           </div>
         </div>

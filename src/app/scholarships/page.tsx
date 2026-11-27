@@ -191,10 +191,10 @@ export default function ScholarshipsPage() {
                         <AlertCircle className="w-3.5 h-3.5" />
                       )}
                       {elig.status === "eligible"
-                        ? "Matched (Demo)"
+                        ? "Indicative Match (Demo)"
                         : elig.status === "partial"
                         ? "Needs Profile Info"
-                        : "Not Matched"}
+                        : "Criteria Mismatch"}
                     </span>
                   </div>
 

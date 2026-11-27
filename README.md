@@ -69,9 +69,24 @@ src/
 # 1. Install dependencies
 npm install
 
-# 2. Start the development server
+# 2. Configure Supabase environment variables (optional for local demo mode, required for Auth & DB)
+# Copy .env.example to .env.local and fill in your Supabase URL and Publishable Key:
+# NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+
+# 3. Start the development server
 npm run dev
 ```
+
+### Supabase & Vercel Setup
+1. **Run SQL Migration**: In **Supabase Dashboard → SQL Editor**, paste and run `supabase/migrations/0001_formsaathi_schema.sql`. This creates `public_opportunities`, `profiles`, `student_preferences`, `saved_opportunities`, and `application_tracking` with Row Level Security (RLS) enabled on every user-specific table.
+2. **Auth Redirect URLs**: In **Supabase Dashboard → Authentication → URL Configuration**, add:
+   - `http://localhost:3000/auth/callback`
+   - `https://your-vercel-domain.vercel.app/auth/callback`
+   - `https://your-vercel-domain.vercel.app/auth/reset-password`
+3. **Environment Variables**:
+   - **Locally**: Enter `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (never commit `.env.local`).
+   - **Vercel**: Add the exact same two variables in **Vercel Dashboard → Project → Settings → Environment Variables** and redeploy.
 
 Open **`http://localhost:3000`** in Chrome or Edge.
 

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Volume2, Check, Edit3, RotateCcw, Sparkles, ArrowUpRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS } from "@/lib/scholarships";
@@ -42,12 +43,14 @@ export function AssistantWidget({ fullHeight = false }: AssistantWidgetProps) {
       <div className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-violet-900 px-4 py-3.5 text-white flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="relative w-11 h-11 rounded-2xl overflow-hidden border border-white/20 bg-indigo-800 shrink-0">
-            <img
+            <Image
               src="/images/assistant-bot.jpg"
               alt="FormSaathi Assistant Mascot"
-              className="w-full h-full object-cover"
+              fill
+              sizes="44px"
+              className="object-cover"
             />
-            <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-indigo-950" />
+            <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-indigo-950 z-10" />
           </div>
           <div>
             <h2 className="font-bold text-sm sm:text-base leading-tight">

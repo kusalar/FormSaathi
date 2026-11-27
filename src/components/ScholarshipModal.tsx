@@ -94,10 +94,10 @@ export function ScholarshipModal() {
               )}
               <span className="text-base font-bold text-indigo-950">
                 {eligibility.status === "eligible"
-                  ? "Eligible (Demo)"
+                  ? "Indicative Match (Demo)"
                   : eligibility.status === "partial"
-                  ? "Complete Profile to Verify"
-                  : "Criteria Mismatch"}
+                  ? "Complete Profile to Check"
+                  : "Criteria Mismatch (Demo)"}
               </span>
             </div>
           </div>

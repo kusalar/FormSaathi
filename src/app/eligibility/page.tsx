@@ -200,11 +200,15 @@ export default function EligibilityPage() {
           <div className="rounded-3xl bg-gradient-to-r from-emerald-50 to-indigo-50 border border-emerald-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-extrabold text-indigo-950">
-                You matched {matchedScholarships.length} Demonstration Scholarships!
+                Indicative Match: {matchedScholarships.length} Demonstration Scholarships
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mt-1">
                 Profile: {draft.course} • {draft.year} • {draft.institutionType} •{" "}
                 {draft.annualIncome} • {draft.state}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Results are indicative only based on demo criteria. Always verify official
+                eligibility on government portals.
               </p>
             </div>
             <button

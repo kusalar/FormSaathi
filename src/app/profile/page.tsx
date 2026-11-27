@@ -22,6 +22,7 @@ export default function ProfilePage() {
     showToast,
     logActivity,
     lang,
+    user,
   } = useApp();
   const [form, setForm] = useState<StudentProfile>(profile);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -63,7 +64,9 @@ export default function ProfilePage() {
               {t(UI_TEXT.nav.profile, lang)}
             </h1>
             <p className="text-sm text-indigo-200 mt-0.5">
-              Keep your education details updated for accurate eligibility checks.
+              {user
+                ? `Synced with your account (${user.email})`
+                : "Local Demo Mode • Sign in to sync across devices"}
             </p>
           </div>
         </div>
@@ -102,7 +105,7 @@ export default function ProfilePage() {
                 setForm({ ...form, name: e.target.value });
                 if (nameError) setNameError(null);
               }}
-              placeholder="e.g. Aarav or Priya"
+              placeholder="Enter your name"
               className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-indigo-950 focus:outline-none focus:ring-2 ${
                 nameError
                   ? "border-rose-400 focus:ring-rose-400"
@@ -253,7 +256,7 @@ export default function ProfilePage() {
               onClick={() => {
                 resetProfile();
                 setForm({
-                  name: "Aarav",
+                  name: "GUEST",
                   course: "",
                   year: "",
                   institutionType: "",

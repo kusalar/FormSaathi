@@ -17,6 +17,9 @@ import {
   Menu,
   X,
   ShieldCheck,
+  LogIn,
+  LogOut,
+  CloudUpload,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { LANGUAGE_META, t, UI_TEXT } from "@/lib/i18n";
@@ -24,7 +27,18 @@ import { Language } from "@/types";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { lang, setLang, profile, overallProgress, activities } = useApp();
+  const {
+    lang,
+    setLang,
+    profile,
+    overallProgress,
+    activities,
+    user,
+    pendingLocalMigration,
+    migrateLocalToSupabase,
+    dismissLocalMigration,
+    signOut,
+  } = useApp();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -210,20 +224,69 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Profile Link */}
+            {/* Profile & Auth Controls */}
             <Link
               href="/profile"
               className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <span className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-xs font-bold flex items-center justify-center">
-                {(profile.name?.[0] || "S").toUpperCase()}
+                {(profile.name?.[0] || "G").toUpperCase()}
               </span>
               <span className="hidden sm:inline text-xs font-semibold text-indigo-950 max-w-[90px] truncate">
-                {profile.name || "Student"}
+                {profile.name || "GUEST"}
               </span>
             </Link>
+
+            {user ? (
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                title={`Signed in as ${user.email || "student"}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-indigo-200 hover:bg-rose-50 hover:border-rose-200 text-xs font-semibold text-indigo-950 hover:text-rose-700 transition"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Sign Out</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold shadow-xs hover:from-indigo-700 hover:to-violet-700 transition"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </Link>
+            )}
           </div>
         </header>
+
+        {/* Explicit One-Time LocalStorage -> Supabase Migration Banner */}
+        {pendingLocalMigration && user && (
+          <div className="bg-indigo-50 border-b border-indigo-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5 text-xs text-indigo-950">
+              <CloudUpload className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+              <p>
+                We found saved profile &amp; checklist details on this device. Would you
+                like to import them into your account (<strong>{user.email}</strong>)?
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => void migrateLocalToSupabase()}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+              >
+                Import to Account
+              </button>
+              <button
+                type="button"
+                onClick={dismissLocalMigration}
+                className="px-3 py-1.5 rounded-xl bg-white border border-indigo-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Page Body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in-up">

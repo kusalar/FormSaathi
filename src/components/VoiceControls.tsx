@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Mic, MicOff, Send, Volume2, VolumeX, AlertCircle, Square } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import {
@@ -14,6 +14,8 @@ interface VoiceControlsProps {
   onTranscript?: (text: string) => void;
 }
 
+const emptySubscribe = () => () => {};
+
 export function VoiceControls({ compact = false, onTranscript }: VoiceControlsProps) {
   const {
     lang,
@@ -26,12 +28,17 @@ export function VoiceControls({ compact = false, onTranscript }: VoiceControlsPr
   } = useApp();
   const [textInput, setTextInput] = useState("");
   const [status, setStatus] = useState<"idle" | "listening" | "processing">("idle");
-  const [speechSupported, setSpeechSupported] = useState<boolean>(true);
+  const browserSupportsSpeech = useSyncExternalStore(
+    emptySubscribe,
+    () => Boolean(getSpeechRecognitionConstructor()),
+    () => true
+  );
+  const [runtimeUnsupported, setRuntimeUnsupported] = useState<boolean>(false);
+  const speechSupported = browserSupportsSpeech && !runtimeUnsupported;
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    setSpeechSupported(Boolean(getSpeechRecognitionConstructor()));
     return () => {
       recognitionRef.current?.abort();
     };
@@ -48,7 +55,7 @@ export function VoiceControls({ compact = false, onTranscript }: VoiceControlsPr
 
     const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
     if (!SpeechRecognitionCtor) {
-      setSpeechSupported(false);
+      setRuntimeUnsupported(true);
       setErrorMsg(
         lang === "hi"
           ? "इस ब्राउज़र में वॉइस इनपुट समर्थित नहीं है। कृपया नीचे टाइप करें।"

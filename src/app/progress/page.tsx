@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Award, CheckCircle2, Clock, Bookmark, ArrowRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS } from "@/lib/scholarships";
@@ -136,11 +137,13 @@ export default function ProgressPage() {
 
       {/* Achievement Banner */}
       <div className="rounded-3xl bg-gradient-to-r from-indigo-50 via-white to-amber-50 border border-indigo-100 p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5 shadow-xs">
-        <div className="w-full sm:w-40 h-28 rounded-2xl overflow-hidden border border-indigo-100 shrink-0">
-          <img
+        <div className="relative w-full sm:w-40 h-28 rounded-2xl overflow-hidden border border-indigo-100 shrink-0">
+          <Image
             src="/assets/educational-success.jpg"
             alt="Indian students celebrating educational success"
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, 160px"
+            className="object-cover"
           />
         </div>
         <div className="flex-1">

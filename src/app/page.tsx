@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Mic,
   ArrowRight,
@@ -146,10 +147,13 @@ export default function HomePage() {
 
               <div className="md:col-span-5 flex flex-col items-center">
                 <div className="relative w-full max-w-[260px] aspect-[4/3] rounded-2xl overflow-hidden shadow-md border border-white/80 animate-float-gentle">
-                  <img
+                  <Image
                     src="/images/hero-scholar.jpg"
                     alt="Indian college student smiling with books"
-                    className="w-full h-full object-cover"
+                    fill
+                    priority
+                    sizes="260px"
+                    className="object-cover"
                   />
                 </div>
                 <p className="mt-2 text-xs font-bold italic text-indigo-800">
@@ -210,11 +214,13 @@ export default function HomePage() {
                   ))}
                 </ul>
 
-                <div className="hidden sm:block w-28 h-28 rounded-2xl overflow-hidden border border-indigo-50 shrink-0">
-                  <img
+                <div className="hidden sm:block relative w-28 h-28 rounded-2xl overflow-hidden border border-indigo-50 shrink-0">
+                  <Image
                     src="/images/scholarship-trophy.jpg"
                     alt="Scholarship books and trophy"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 </div>
               </div>

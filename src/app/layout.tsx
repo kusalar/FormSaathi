@@ -19,7 +19,27 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "FormSaathi — Voice-First Scholarship Assistant",
   description:
-    "Helping Indian students discover scholarships, check eligibility, and prepare documents using natural voice conversations in English, Hindi, and Bengali.",
+    "Helping Indian students discover scholarships, check indicative eligibility, and prepare documents using natural voice conversations in English, Hindi, and Bengali.",
+  keywords: [
+    "FormSaathi",
+    "scholarship assistant",
+    "voice-first EdTech",
+    "Indian students",
+    "Hindi Bengali English",
+  ],
+  openGraph: {
+    title: "FormSaathi — Voice-First Scholarship Assistant",
+    description:
+      "Voice-first scholarship discovery, indicative eligibility matching, and document preparation for Indian students in English, Hindi, and Bengali.",
+    type: "website",
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FormSaathi — Voice-First Scholarship Assistant",
+    description:
+      "Helping Indian students discover scholarships and prepare documents using natural voice conversations.",
+  },
 };
 
 export default function RootLayout({

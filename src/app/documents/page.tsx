@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { CheckCircle2, Circle, FileText, ShieldCheck, RotateCcw } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS } from "@/lib/scholarships";
@@ -69,11 +70,13 @@ export default function DocumentsPage() {
           </div>
         </div>
 
-        <div className="w-full sm:w-44 h-28 rounded-2xl overflow-hidden border border-indigo-100 shrink-0">
-          <img
+        <div className="relative w-full sm:w-44 h-28 rounded-2xl overflow-hidden border border-indigo-100 shrink-0">
+          <Image
             src="/assets/document-prep.jpg"
             alt="Organized scholarship documents and checklist"
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, 176px"
+            className="object-cover"
           />
         </div>
       </div>

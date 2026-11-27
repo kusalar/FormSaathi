@@ -20,6 +20,19 @@ import {
   stopSpeaking,
 } from "@/lib/voiceEngine";
 import { SCHOLARSHIPS } from "@/lib/scholarships";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  loadCloudUserData,
+  syncCloudCheckedDocs,
+  syncCloudSavedOpportunity,
+  upsertCloudProfile,
+} from "@/lib/supabase/db";
+
+interface AuthUserSummary {
+  id: string;
+  email?: string;
+}
 
 interface AppState {
   lang: Language;
@@ -51,10 +64,16 @@ interface AppState {
   overallProgress: number;
   profileCompleteness: number;
   docProgress: number;
+  user: AuthUserSummary | null;
+  supabaseConfigured: boolean;
+  pendingLocalMigration: boolean;
+  migrateLocalToSupabase: () => Promise<void>;
+  dismissLocalMigration: () => void;
+  signOut: () => Promise<void>;
 }
 
 const DEFAULT_PROFILE: StudentProfile = {
-  name: "Aarav",
+  name: "GUEST",
   course: "",
   year: "",
   institutionType: "",
@@ -102,6 +121,16 @@ function getInitialGreeting(lang: Language): VoiceMessage {
 const AppContext = createContext<AppState | null>(null);
 const STORAGE_KEY = "formsaathi_state_v1";
 
+let uidCounter = 0;
+function nextUid(prefix: string): string {
+  uidCounter += 1;
+  return `${prefix}-${uidCounter}`;
+}
+
+function formatNowTime(): string {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Language>("en");
   const [profile, setProfile] = useState<StudentProfile>(DEFAULT_PROFILE);
@@ -113,6 +142,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
+  const [user, setUser] = useState<AuthUserSummary | null>(null);
+  const [pendingLocalMigration, setPendingLocalMigration] = useState<boolean>(false);
+  const supabaseConfigured = isSupabaseConfigured();
   const [activities, setActivities] = useState<ActivityItem[]>([
     {
       id: "act-1",
@@ -128,21 +160,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate from localStorage on client
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed.lang) setLangState(parsed.lang);
-      if (parsed.profile) setProfile({ ...DEFAULT_PROFILE, ...parsed.profile });
-      if (parsed.checkedDocs) setCheckedDocs(parsed.checkedDocs);
-      if (parsed.savedScholarships) setSavedScholarships(parsed.savedScholarships);
-      if (typeof parsed.autoSpeak === "boolean") setAutoSpeak(parsed.autoSpeak);
-      if (Array.isArray(parsed.activities) && parsed.activities.length > 0) {
-        setActivities(parsed.activities);
+    const timer = setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed.lang) setLangState(parsed.lang);
+        if (parsed.profile) setProfile({ ...DEFAULT_PROFILE, ...parsed.profile });
+        if (parsed.checkedDocs) setCheckedDocs(parsed.checkedDocs);
+        if (parsed.savedScholarships) setSavedScholarships(parsed.savedScholarships);
+        if (typeof parsed.autoSpeak === "boolean") setAutoSpeak(parsed.autoSpeak);
+        if (Array.isArray(parsed.activities) && parsed.activities.length > 0) {
+          setActivities(parsed.activities);
+        }
+      } catch {
+        // Ignore corrupt storage
       }
-    } catch {
-      // Ignore corrupt storage
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Persist to localStorage
@@ -163,6 +198,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Ignore storage quota errors
     }
   }, [lang, profile, checkedDocs, savedScholarships, autoSpeak, activities]);
+
+  // Sync with Supabase Auth & Database when configured
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    const supabase = createSupabaseClient();
+    if (!supabase) return;
+
+    const hydrateFromCloud = async (authUser: AuthUserSummary) => {
+      setUser(authUser);
+      try {
+        const cloud = await loadCloudUserData(supabase, authUser.id);
+        const cloudHasProfile = Boolean(
+          cloud.profile.course || cloud.profile.year || cloud.profile.state
+        );
+        if (cloudHasProfile || cloud.profile.name) {
+          setProfile((prev) => ({ ...prev, ...cloud.profile }));
+        }
+        if (cloud.lang) setLangState(cloud.lang);
+        if (cloud.savedScholarships.length > 0) {
+          setSavedScholarships(cloud.savedScholarships);
+        }
+        if (Object.keys(cloud.checkedDocs).length > 0) {
+          setCheckedDocs(cloud.checkedDocs);
+        }
+
+        // Check if explicit one-time localStorage migration should be offered
+        const migratedFlag = window.localStorage.getItem(
+          `formsaathi_migrated_${authUser.id}`
+        );
+        const localRaw = window.localStorage.getItem(STORAGE_KEY);
+        if (!migratedFlag && localRaw && !cloudHasProfile) {
+          const parsed = JSON.parse(localRaw);
+          const p = parsed?.profile;
+          if (p && (p.course || p.year || p.state || p.annualIncome)) {
+            setPendingLocalMigration(true);
+          }
+        }
+      } catch {
+        // Keep local state if cloud fetch fails
+      }
+    };
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        hydrateFromCloud({ id: data.user.id, email: data.user.email });
+      }
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        hydrateFromCloud({ id: session.user.id, email: session.user.email });
+      } else {
+        setUser(null);
+        setPendingLocalMigration(false);
+      }
+    });
+
+    return () => {
+      sub.subscription.unsubscribe();
+    };
+  }, [supabaseConfigured]);
 
   const showToast = (title: string, description?: string, type: ToastItem["type"] = "info") => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -201,13 +297,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProfile = (updates: Partial<StudentProfile>) => {
-    setProfile((prev) => ({ ...prev, ...updates }));
+    setProfile((prev) => {
+      const merged = { ...prev, ...updates };
+      if (user && supabaseConfigured) {
+        const supabase = createSupabaseClient();
+        if (supabase) {
+          void upsertCloudProfile(supabase, user.id, merged, lang);
+        }
+      }
+      return merged;
+    });
   };
 
   const toggleDoc = (docId: string) => {
     setCheckedDocs((prev) => {
-      const next = !prev[docId];
-      return { ...prev, [docId]: next };
+      const updated = { ...prev, [docId]: !prev[docId] };
+      if (user && supabaseConfigured) {
+        const supabase = createSupabaseClient();
+        if (supabase) {
+          void syncCloudCheckedDocs(supabase, user.id, updated);
+        }
+      }
+      return updated;
     });
   };
 
@@ -215,6 +326,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSavedScholarships((prev) => {
       const exists = prev.includes(id);
       const next = exists ? prev.filter((item) => item !== id) : [...prev, id];
+      if (user && supabaseConfigured) {
+        const supabase = createSupabaseClient();
+        if (supabase) {
+          void syncCloudSavedOpportunity(supabase, user.id, id, !exists);
+        }
+      }
       showToast(
         exists ? "Removed from saved list" : "Saved scholarship to your list",
         undefined,
@@ -222,6 +339,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
       return next;
     });
+  };
+
+  const migrateLocalToSupabase = async () => {
+    if (!user || !supabaseConfigured) return;
+    const supabase = createSupabaseClient();
+    if (!supabase) return;
+    await upsertCloudProfile(supabase, user.id, profile, lang);
+    await syncCloudCheckedDocs(supabase, user.id, checkedDocs);
+    for (const sId of savedScholarships) {
+      await syncCloudSavedOpportunity(supabase, user.id, sId, true);
+    }
+    window.localStorage.setItem(`formsaathi_migrated_${user.id}`, "true");
+    setPendingLocalMigration(false);
+    showToast("Data imported", "Your local profile & checklist are now saved to your account.", "success");
+  };
+
+  const dismissLocalMigration = () => {
+    if (user) {
+      window.localStorage.setItem(`formsaathi_migrated_${user.id}`, "dismissed");
+    }
+    setPendingLocalMigration(false);
+  };
+
+  const signOut = async () => {
+    const supabase = createSupabaseClient();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setProfile(DEFAULT_PROFILE);
+    setPendingLocalMigration(false);
+    showToast("Signed out", "You are now in GUEST demo mode.", "info");
   };
 
   const speakMessage = (text: string, msgLang?: Language) => {
@@ -255,11 +404,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (lastPending && (isAffirmativeReply(trimmed) || isNegativeReply(trimmed))) {
       const userMsg: VoiceMessage = {
-        id: `user-${Date.now()}`,
+        id: nextUid("user"),
         role: "user",
         lang,
         text: trimmed,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: formatNowTime(),
       };
       setMessages((prev) => [...prev, userMsg]);
       confirmPendingDetails(lastPending.id, isAffirmativeReply(trimmed));
@@ -267,19 +416,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const userMsg: VoiceMessage = {
-      id: `user-${Date.now()}`,
+      id: nextUid("user"),
       role: "user",
       lang,
       text: trimmed,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: formatNowTime(),
     };
 
     const { reply, detectedUpdates } = generateAssistantReply(trimmed, profile, lang);
-    const assistantId = `asst-${Date.now() + 1}`;
+    const assistantId = nextUid("asst");
     const assistantMsg: VoiceMessage = {
       ...reply,
       id: assistantId,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: formatNowTime(),
     };
 
     if (Object.keys(detectedUpdates).length > 0) {
@@ -426,6 +575,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         overallProgress,
         profileCompleteness,
         docProgress,
+        user,
+        supabaseConfigured,
+        pendingLocalMigration,
+        migrateLocalToSupabase,
+        dismissLocalMigration,
+        signOut,
       }}
     >
       {children}
