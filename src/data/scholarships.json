@@ -1,0 +1,521 @@
+[
+  {
+    "id": "demo-central-sector",
+    "isDemo": true,
+    "name": {
+      "en": "Central Sector Merit Scholarship (Demo)",
+      "hi": "केंद्रीय क्षेत्र मेधा छात्रवृत्ति (डेमो)",
+      "bn": "কেন্দ্রীয় সেক্টর মেধা বৃত্তি (ডেমো)"
+    },
+    "provider": {
+      "en": "Simulated National Merit Scheme",
+      "hi": "सिमुलेटेड राष्ट्रीय मेधा योजना",
+      "bn": "সিমুলেটেড জাতীয় মেধা প্রকল্প"
+    },
+    "category": "Merit",
+    "amountLabel": {
+      "en": "₹12,000 – ₹20,000 / year (Demo)",
+      "hi": "₹12,000 – ₹20,000 / वर्ष (डेमो)",
+      "bn": "₹১২,০০০ – ₹২০,০০০ / বছর (ডেমো)"
+    },
+    "deadlineLabel": {
+      "en": "Demo Cycle: Open for Practice",
+      "hi": "डेमो चक्र: अभ्यास के लिए खुला",
+      "bn": "ডেমো চক্র: অনুশীলনের জন্য খোলা"
+    },
+    "summary": {
+      "en": "Demonstration model for undergraduate and postgraduate students from low-to-middle income families with strong academic scores.",
+      "hi": "कम से मध्यम आय वाले परिवारों के मेधावी स्नातक और स्नातकोत्तर छात्रों के लिए डेमो छात्रवृत्ति मॉडल।",
+      "bn": "কম থেকে মধ্যম আয়ের পরিবারের মেধাবী স্নাতক ও স্নাতকোত্তর শিক্ষার্থীদের জন্য ডেমো বৃত্তি মডেল।"
+    },
+    "verifiedPortalUrl": null,
+    "verifiedPortalNote": {
+      "en": "Demonstration entry only. Check the official National Scholarship Portal (scholarships.gov.in) for live schemes.",
+      "hi": "यह केवल डेमो प्रविष्टि है। वास्तविक योजनाओं के लिए आधिकारिक राष्ट्रीय छात्रवृत्ति पोर्टल (scholarships.gov.in) देखें।",
+      "bn": "এটি শুধুমাত্র ডেমো এন্ট্রি। আসল প্রকল্পের জন্য অফিসিয়াল ন্যাশনাল স্কলারশিপ পোর্টাল (scholarships.gov.in) দেখুন।"
+    },
+    "eligibilityCriteria": {
+      "courses": ["B.Tech", "B.Sc", "B.Com", "B.A", "MBBS", "Diploma", "M.Sc", "M.Tech"],
+      "years": ["1st Year", "2nd Year", "3rd Year", "4th Year"],
+      "institutionTypes": ["Government", "Aided", "Private"],
+      "maxIncomeLakh": 4.5,
+      "states": []
+    },
+    "requiredDocuments": [
+      {
+        "id": "doc-marksheet",
+        "label": {
+          "en": "Previous Year / Class 12 Marksheet",
+          "hi": "पिछले वर्ष / कक्षा 12 की अंकतालिका",
+          "bn": "পূর্ববর্তী বছর / দ্বাদশ শ্রেণির মার্কশিট"
+        },
+        "tip": {
+          "en": "Keep a clear PDF or photo copy issued by your board or university.",
+          "hi": "अपने बोर्ड या विश्वविद्यालय द्वारा जारी स्पष्ट पीडीएफ या फोटो कॉपी रखें।",
+          "bn": "আপনার বোর্ড বা বিশ্ববিদ্যালয় থেকে প্রাপ্ত স্পষ্ট পিডিএফ বা ফটো কপি রাখুন।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-income",
+        "label": {
+          "en": "Family Income Certificate",
+          "hi": "पारिवारिक आय प्रमाण पत्र",
+          "bn": "পারিবারিক আয়ের শংসাপত্র"
+        },
+        "tip": {
+          "en": "Issued by Tehsildar, BDO, or local revenue authority. Never share passwords or sensitive IDs here.",
+          "hi": "तहसीलदार, बीडीओ या स्थानीय राजस्व अधिकारी द्वारा जारी। यहाँ कभी भी संवेदनशील नंबर साझा न करें।",
+          "bn": "তহশিলদার, বিডিও বা স্থানীয় রাজস্ব কর্তৃপক্ষ দ্বারা প্রদত্ত। এখানে কখনো সংবেদনশীল নম্বর দেবেন না।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-bonafide",
+        "label": {
+          "en": "College Bonafide / Enrollment Certificate",
+          "hi": "कॉलेज बोनाफाइड / नामांकन प्रमाण पत्र",
+          "bn": "কলেজ বোনাফাইড / ভর্তির শংসাপত্র"
+        },
+        "tip": {
+          "en": "Request from your college administration office with current academic year.",
+          "hi": "वर्तमान शैक्षणिक वर्ष के साथ अपने कॉलेज कार्यालय से प्राप्त करें।",
+          "bn": "বর্তমান শিক্ষাবর্ষ উল্লেখসহ আপনার কলেজ অফিস থেকে সংগ্রহ করুন।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-passbook-note",
+        "label": {
+          "en": "Bank Account Readiness (Keep IFSC handy for official portal)",
+          "hi": "बैंक खाता तैयारी (आधिकारिक पोर्टल के लिए IFSC तैयार रखें)",
+          "bn": "ব্যাংক অ্যাকাউন্ট প্রস্তুতি (অফিসিয়াল পোর্টালের জন্য IFSC হাতের কাছে রাখুন)"
+        },
+        "tip": {
+          "en": "Verify your account is active in your own name. Do NOT enter bank details inside FormSaathi.",
+          "hi": "सुनिश्चित करें कि खाता आपके नाम पर सक्रिय है। FormSaathi में बैंक विवरण न दर्ज करें।",
+          "bn": "আপনার নামে অ্যাকাউন্ট সক্রিয় আছে তা নিশ্চিত করুন। FormSaathi-তে ব্যাংক তথ্য দেবেন না।"
+        },
+        "required": false
+      }
+    ],
+    "applicationSteps": [
+      {
+        "en": "Confirm your course, year, and family income eligibility in FormSaathi.",
+        "hi": "FormSaathi में अपने पाठ्यक्रम, वर्ष और पारिवारिक आय की पात्रता की पुष्टि करें।",
+        "bn": "FormSaathi-তে আপনার কোর্স, বর্ষ এবং পারিবারিক আয়ের যোগ্যতা নিশ্চিত করুন।"
+      },
+      {
+        "en": "Collect marksheet, income certificate, and college bonafide certificate.",
+        "hi": "अंकतालिका, आय प्रमाण पत्र और कॉलेज बोनाफाइड प्रमाण पत्र एकत्र करें।",
+        "bn": "মার্কশিট, আয়ের শংসাপত্র এবং কলেজ বোনাফাইড শংসাপত্র সংগ্রহ করুন।"
+      },
+      {
+        "en": "Visit the official National Scholarship Portal directly when applications open.",
+        "hi": "आवेदन खुलने पर सीधे आधिकारिक राष्ट्रीय छात्रवृत्ति पोर्टल पर जाएं।",
+        "bn": "আবেদন শুরু হলে সরাসরি অফিসিয়াল ন্যাশনাল স্কলারশিপ পোর্টালে যান।"
+      }
+    ]
+  },
+  {
+    "id": "demo-inspire-stem",
+    "isDemo": true,
+    "name": {
+      "en": "STEM & Science Innovation Scholarship (Demo)",
+      "hi": "STEM एवं विज्ञान नवाचार छात्रवृत्ति (डेमो)",
+      "bn": "STEM ও বিজ্ঞান উদ্ভাবন বৃত্তি (ডেমো)"
+    },
+    "provider": {
+      "en": "Simulated Science & Tech Foundation",
+      "hi": "सिमुलेटेड विज्ञान एवं तकनीकी फाउंडेशन",
+      "bn": "সিমুলেটেড বিজ্ঞান ও প্রযুক্তি ফাউন্ডেশন"
+    },
+    "category": "STEM",
+    "amountLabel": {
+      "en": "₹60,000 / year + Mentorship (Demo)",
+      "hi": "₹60,000 / वर्ष + मेंटरशिप (डेमो)",
+      "bn": "₹৬০,০০০ / বছর + মেন্টরশিপ (ডেমো)"
+    },
+    "deadlineLabel": {
+      "en": "Demo Cycle: Open for Practice",
+      "hi": "डेमो चक्र: अभ्यास के लिए खुला",
+      "bn": "ডেমো চক্র: অনুশীলনের জন্য খোলা"
+    },
+    "summary": {
+      "en": "Demonstration scholarship for B.Tech, B.Sc, and M.Sc students pursuing science, engineering, and technology degrees.",
+      "hi": "विज्ञान, इंजीनियरिंग और प्रौद्योगिकी की पढ़ाई कर रहे B.Tech, B.Sc और M.Sc छात्रों के लिए डेमो छात्रवृत्ति।",
+      "bn": "বিজ্ঞান, ইঞ্জিনিয়ারিং ও প্রযুক্তিতে অধ্যয়নরত B.Tech, B.Sc এবং M.Sc শিক্ষার্থীদের জন্য ডেমো বৃত্তি।"
+    },
+    "verifiedPortalUrl": null,
+    "verifiedPortalNote": {
+      "en": "Demonstration entry only. Official science fellowships are published on respective government portals.",
+      "hi": "यह केवल डेमो प्रविष्टि है। आधिकारिक विज्ञान छात्रवृत्तियाँ संबंधित सरकारी पोर्टल पर प्रकाशित होती हैं।",
+      "bn": "এটি শুধুমাত্র ডেমো এন্ট্রি। অফিসিয়াল বিজ্ঞান বৃত্তি সংশ্লিষ্ট সরকারি পোর্টালে প্রকাশিত হয়।"
+    },
+    "eligibilityCriteria": {
+      "courses": ["B.Tech", "B.Sc", "M.Sc", "M.Tech", "Diploma"],
+      "years": ["1st Year", "2nd Year", "3rd Year", "4th Year"],
+      "institutionTypes": ["Government", "Aided", "Private"],
+      "maxIncomeLakh": 8.0,
+      "states": []
+    },
+    "requiredDocuments": [
+      {
+        "id": "doc-marksheet",
+        "label": {
+          "en": "Science / Engineering Marksheet",
+          "hi": "विज्ञान / इंजीनियरिंग अंकतालिका",
+          "bn": "বিজ্ঞান / ইঞ্জিনিয়ারিং মার্কশিট"
+        },
+        "tip": {
+          "en": "Keep semester marksheets ready in clear PDF format.",
+          "hi": "सेमेस्टर की अंकतालिकाएं स्पष्ट पीडीएफ प्रारूप में तैयार रखें।",
+          "bn": "সেমিস্টারের মার্কশিটগুলি স্পষ্ট পিডিএফ ফরম্যাটে প্রস্তুত রাখুন।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-bonafide",
+        "label": {
+          "en": "Institution Endorsement / Bonafide Letter",
+          "hi": "संस्थान अनुमोदन / बोनाफाइड पत्र",
+          "bn": "প্রতিষ্ঠানের অনুমোদন / বোনাফাইড পত্র"
+        },
+        "tip": {
+          "en": "Signed by your Head of Department or Principal.",
+          "hi": "आपके विभागाध्यक्ष या प्राचार्य द्वारा हस्ताक्षरित।",
+          "bn": "আপনার বিভাগীয় প্রধান বা অধ্যক্ষ দ্বারা স্বাক্ষরিত।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-sop",
+        "label": {
+          "en": "Brief Statement of Interest (150 words)",
+          "hi": "संक्षिप्त उद्देश्य कथन (150 शब्द)",
+          "bn": "সংক্ষিপ্ত উদ্দেশ্য বিবরণী (১৫০ শব্দ)"
+        },
+        "tip": {
+          "en": "Explain what you are studying and why you enjoy your subject.",
+          "hi": "बताएं कि आप क्या पढ़ रहे हैं और आपको यह विषय क्यों पसंद है।",
+          "bn": "আপনি কী নিয়ে পড়ছেন এবং কেন বিষয়টি পছন্দ করেন তা লিখুন।"
+        },
+        "required": false
+      }
+    ],
+    "applicationSteps": [
+      {
+        "en": "Verify your STEM course and current academic year.",
+        "hi": "अपने STEM पाठ्यक्रम और वर्तमान शैक्षणिक वर्ष की पुष्टि करें।",
+        "bn": "আপনার STEM কোর্স এবং বর্তমান শিক্ষাবর্ষ যাচাই করুন।"
+      },
+      {
+        "en": "Obtain an endorsement letter from your college department.",
+        "hi": "अपने कॉलेज विभाग से अनुमोदन पत्र प्राप्त करें।",
+        "bn": "আপনার কলেজ বিভাগ থেকে অনুমোদন পত্র সংগ্রহ করুন।"
+      },
+      {
+        "en": "Prepare a short paragraph on your academic goals.",
+        "hi": "अपने शैक्षणिक लक्ष्यों पर एक छोटा अनुच्छेद तैयार करें।",
+        "bn": "আপনার শিক্ষাগত লক্ষ্য সম্পর্কে একটি সংক্ষিপ্ত অনুচ্ছেদ প্রস্তুত করুন।"
+      }
+    ]
+  },
+  {
+    "id": "demo-state-education",
+    "isDemo": true,
+    "name": {
+      "en": "State Higher Education Support (Demo)",
+      "hi": "राज्य उच्च शिक्षा सहायता छात्रवृत्ति (डेमो)",
+      "bn": "রাজ্য উচ্চশিক্ষা সহায়তা বৃত্তি (ডেমো)"
+    },
+    "provider": {
+      "en": "Simulated State Education Department",
+      "hi": "सिमुलेटेड राज्य शिक्षा विभाग",
+      "bn": "সিমুলেটেড রাজ্য শিক্ষা দপ্তর"
+    },
+    "category": "State",
+    "amountLabel": {
+      "en": "₹18,000 – ₹30,000 / year (Demo)",
+      "hi": "₹18,000 – ₹30,000 / वर्ष (डेमो)",
+      "bn": "₹১৮,০০০ – ₹৩০,০০০ / বছর (ডেমো)"
+    },
+    "deadlineLabel": {
+      "en": "Demo Cycle: Open for Practice",
+      "hi": "डेमो चक्र: अभ्यास के लिए खुला",
+      "bn": "ডেমো চক্র: অনুশীলনের জন্য খোলা"
+    },
+    "summary": {
+      "en": "Demonstration state-level scholarship supporting domicile students in Government and Aided colleges.",
+      "hi": "सरकारी और सहायता प्राप्त कॉलेजों में स्थानीय छात्रों की सहायता के लिए डेमो राज्य-स्तरीय छात्रवृत्ति।",
+      "bn": "সরকারি ও সরকার-পোষিত কলেজের স্থানীয় শিক্ষার্থীদের সহায়তার জন্য ডেমো রাজ্য-স্তরের বৃত্তি।"
+    },
+    "verifiedPortalUrl": null,
+    "verifiedPortalNote": {
+      "en": "Demonstration entry only. Always verify with your state's official scholarship portal.",
+      "hi": "यह केवल डेमो प्रविष्टि है। हमेशा अपने राज्य के आधिकारिक छात्रवृत्ति पोर्टल से पुष्टि करें।",
+      "bn": "এটি শুধুমাত্র ডেমো এন্ট্রি। সর্বদা আপনার রাজ্যের অফিসিয়াল স্কলারশিপ পোর্টাল থেকে যাচাই করুন।"
+    },
+    "eligibilityCriteria": {
+      "courses": [],
+      "years": [],
+      "institutionTypes": ["Government", "Aided"],
+      "maxIncomeLakh": 5.0,
+      "states": []
+    },
+    "requiredDocuments": [
+      {
+        "id": "doc-domicile",
+        "label": {
+          "en": "State Domicile / Residence Certificate",
+          "hi": "राज्य निवास प्रमाण पत्र",
+          "bn": "রাজ্যের স্থায়ী বাসিন্দা শংসাপত্র"
+        },
+        "tip": {
+          "en": "Confirms your home state for state-level scholarships.",
+          "hi": "राज्य-स्तरीय छात्रवृत्ति के लिए आपके गृह राज्य की पुष्टि करता है।",
+          "bn": "রাজ্য-স্তরের বৃত্তির জন্য আপনার নিজ রাজ্য নিশ্চিত করে।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-income",
+        "label": {
+          "en": "Family Income Certificate",
+          "hi": "पारिवारिक आय प्रमाण पत्र",
+          "bn": "পারিবারিক আয়ের শংসাপত্র"
+        },
+        "tip": {
+          "en": "Ensure the certificate is valid for the current financial year.",
+          "hi": "सुनिश्चित करें कि प्रमाण पत्र वर्तमान वित्तीय वर्ष के लिए मान्य है।",
+          "bn": "শংসাপত্রটি বর্তমান অর্থবছরের জন্য বৈধ কিনা নিশ্চিত করুন।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-fee-receipt",
+        "label": {
+          "en": "Current Year Fee Receipt",
+          "hi": "वर्तमान वर्ष की शुल्क रसीद",
+          "bn": "বর্তমান বছরের ফি রসিদ"
+        },
+        "tip": {
+          "en": "Tuition fee receipt issued by your college.",
+          "hi": "आपके कॉलेज द्वारा जारी ट्यूशन शुल्क रसीद।",
+          "bn": "আপনার কলেজ থেকে প্রাপ্ত টিউশন ফি রসিদ।"
+        },
+        "required": true
+      }
+    ],
+    "applicationSteps": [
+      {
+        "en": "Confirm your home state and college type (Government or Aided).",
+        "hi": "अपने गृह राज्य और कॉलेज के प्रकार (सरकारी या सहायता प्राप्त) की पुष्टि करें।",
+        "bn": "আপনার নিজ রাজ্য এবং কলেজের ধরন (সরকারি বা সরকার-পোষিত) নিশ্চিত করুন।"
+      },
+      {
+        "en": "Keep your domicile certificate and fee receipt ready.",
+        "hi": "अपना निवास प्रमाण पत्र और शुल्क रसीद तैयार रखें।",
+        "bn": "আপনার স্থায়ী বাসিন্দা শংসাপত্র এবং ফি রসিদ প্রস্তুত রাখুন।"
+      }
+    ]
+  },
+  {
+    "id": "demo-first-gen-udaan",
+    "isDemo": true,
+    "name": {
+      "en": "First-Generation Rural Scholar Grant (Demo)",
+      "hi": "प्रथम-पीढ़ी ग्रामीण छात्र अनुदान (डेमो)",
+      "bn": "প্রথম-প্রজন্মের গ্রামীণ শিক্ষার্থী অনুদান (ডেমো)"
+    },
+    "provider": {
+      "en": "Simulated Bharat Shiksha Trust",
+      "hi": "सिमुलेटेड भारत शिक्षा ट्रस्ट",
+      "bn": "সিমুলেটেড ভারত শিক্ষা ট্রাস্ট"
+    },
+    "category": "First-Gen",
+    "amountLabel": {
+      "en": "₹25,000 / year + Laptop Aid (Demo)",
+      "hi": "₹25,000 / वर्ष + लैपटॉप सहायता (डेमो)",
+      "bn": "₹২৫,০০০ / বছর + ল্যাপটপ সহায়তা (ডেমো)"
+    },
+    "deadlineLabel": {
+      "en": "Demo Cycle: Open for Practice",
+      "hi": "डेमो चक्र: अभ्यास के लिए खुला",
+      "bn": "ডেমো চক্র: অনুশীলনের জন্য খোলা"
+    },
+    "summary": {
+      "en": "Demonstration grant designed for first-generation college learners from rural and semi-urban families.",
+      "hi": "ग्रामीण और अर्ध-शहरी परिवारों के प्रथम-पीढ़ी के कॉलेज छात्रों के लिए डिज़ाइन किया गया डेमो अनुदान।",
+      "bn": "গ্রামীণ ও আধা-শহুরে পরিবারের প্রথম-প্রজন্মের কলেজ শিক্ষার্থীদের জন্য তৈরি ডেমো অনুদান।"
+    },
+    "verifiedPortalUrl": null,
+    "verifiedPortalNote": {
+      "en": "Demonstration entry only. Built to practice eligibility and document readiness.",
+      "hi": "यह केवल डेमो प्रविष्टि है। पात्रता और दस्तावेज़ तैयारी के अभ्यास के लिए बनाया गया है।",
+      "bn": "এটি শুধুমাত্র ডেমো এন্ট্রি। যোগ্যতা ও নথিপত্র প্রস্তুতির অনুশীলনের জন্য তৈরি।"
+    },
+    "eligibilityCriteria": {
+      "courses": [],
+      "years": ["1st Year", "2nd Year", "3rd Year", "4th Year"],
+      "institutionTypes": ["Government", "Aided", "Private"],
+      "maxIncomeLakh": 3.5,
+      "states": []
+    },
+    "requiredDocuments": [
+      {
+        "id": "doc-income",
+        "label": {
+          "en": "Family Income Certificate",
+          "hi": "पारिवारिक आय प्रमाण पत्र",
+          "bn": "পারিবারিক আয়ের শংসাপত্র"
+        },
+        "tip": {
+          "en": "Shows annual household income below ₹3.5 Lakh.",
+          "hi": "₹3.5 लाख से कम वार्षिक पारिवारिक आय दर्शाता है।",
+          "bn": "বার্ষিক পারিবারিক আয় ₹৩.৫ লক্ষের নিচে তা নির্দেশ করে।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-bonafide",
+        "label": {
+          "en": "College Admission / Bonafide Proof",
+          "hi": "कॉलेज प्रवेश / बोनाफाइड प्रमाण",
+          "bn": "কলেজে ভর্তির / বোনাফাইড প্রমাণ"
+        },
+        "tip": {
+          "en": "Confirming active enrollment in your degree or diploma.",
+          "hi": "आपकी डिग्री या डिप्लोमा में सक्रिय नामांकन की पुष्टि।",
+          "bn": "আপনার ডিগ্রি বা ডিপ্লোমায় সক্রিয় ভর্তির প্রমাণ।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-firstgen-decl",
+        "label": {
+          "en": "Self-Declaration of First-Generation Learner",
+          "hi": "प्रथम-पीढ़ी शिक्षार्थी स्व-घोषणा",
+          "bn": "প্রথম-প্রজন্মের শিক্ষার্থীর স্ব-ঘোষণা"
+        },
+        "tip": {
+          "en": "A simple signed note stating you are the first in your immediate family to attend college.",
+          "hi": "एक सरल हस्ताक्षरित पत्र कि आप अपने परिवार में कॉलेज जाने वाले पहले व्यक्ति हैं।",
+          "bn": "একটি সাধারণ স্বাক্ষরিত নোট যে আপনি আপনার পরিবারে প্রথম কলেজে পড়ছেন।"
+        },
+        "required": true
+      }
+    ],
+    "applicationSteps": [
+      {
+        "en": "Mark 'First-generation learner' in your FormSaathi profile.",
+        "hi": "अपनी FormSaathi प्रोफ़ाइल में 'प्रथम-पीढ़ी शिक्षार्थी' चिह्नित करें।",
+        "bn": "আপনার FormSaathi প্রোফাইলে 'প্রথম-প্রজন্মের শিক্ষার্থী' চিহ্নিত করুন।"
+      },
+      {
+        "en": "Prepare your income certificate and self-declaration note.",
+        "hi": "अपना आय प्रमाण पत्र और स्व-घोषणा पत्र तैयार करें।",
+        "bn": "আপনার আয়ের শংসাপত্র এবং স্ব-ঘোষণা পত্র প্রস্তুত করুন।"
+      }
+    ]
+  },
+  {
+    "id": "demo-means-tuition",
+    "isDemo": true,
+    "name": {
+      "en": "Merit-cum-Means Tuition Relief (Demo)",
+      "hi": "मेरिट-कम-मीन्स ट्यूशन सहायता (डेमो)",
+      "bn": "মেরিট-কাম-মিনস টিউশন সহায়তা (ডেমো)"
+    },
+    "provider": {
+      "en": "Simulated Technical Education Fund",
+      "hi": "सिमुलेटेड तकनीकी शिक्षा कोष",
+      "bn": "সিমুলেটেড কারিগরি শিক্ষা তহবিল"
+    },
+    "category": "Means",
+    "amountLabel": {
+      "en": "Up to ₹40,000 / year (Demo)",
+      "hi": "₹40,000 / वर्ष तक (डेमो)",
+      "bn": "সর্বোচ্চ ₹৪০,০০০ / বছর (ডেমো)"
+    },
+    "deadlineLabel": {
+      "en": "Demo Cycle: Open for Practice",
+      "hi": "डेमो चक्र: अभ्यास के लिए खुला",
+      "bn": "ডেমো চক্র: অনুশীলনের জন্য খোলা"
+    },
+    "summary": {
+      "en": "Demonstration financial aid for technical and professional degree students needing tuition fee support.",
+      "hi": "तकनीकी और व्यावसायिक डिग्री छात्रों के लिए ट्यूशन शुल्क सहायता हेतु डेमो वित्तीय सहायता।",
+      "bn": "কারিগরি ও পেশাগত ডিগ্রি শিক্ষার্থীদের টিউশন ফি সহায়তার জন্য ডেমো আর্থিক সহায়তা।"
+    },
+    "verifiedPortalUrl": null,
+    "verifiedPortalNote": {
+      "en": "Demonstration entry only. Do not treat as a live government notification.",
+      "hi": "यह केवल डेमो प्रविष्टि है। इसे लाइव सरकारी अधिसूचना न मानें।",
+      "bn": "এটি শুধুমাত্র ডেমো এন্ট্রি। এটিকে আসল সরকারি বিজ্ঞপ্তি হিসেবে নেবেন না।"
+    },
+    "eligibilityCriteria": {
+      "courses": ["B.Tech", "Diploma", "MBBS", "M.Tech"],
+      "years": ["1st Year", "2nd Year", "3rd Year", "4th Year"],
+      "institutionTypes": ["Government", "Aided", "Private"],
+      "maxIncomeLakh": 2.5,
+      "states": []
+    },
+    "requiredDocuments": [
+      {
+        "id": "doc-income",
+        "label": {
+          "en": "Family Income Certificate (Below ₹2.5L)",
+          "hi": "पारिवारिक आय प्रमाण पत्र (₹2.5 लाख से कम)",
+          "bn": "পারিবারিক আয়ের শংসাপত্র (₹২.৫ লক্ষের নিচে)"
+        },
+        "tip": {
+          "en": "Must be issued by an authorized local officer.",
+          "hi": "अधिकृत स्थानीय अधिकारी द्वारा जारी होना चाहिए।",
+          "bn": "অনুমোদিত স্থানীয় কর্মকর্তা দ্বারা প্রদত্ত হতে হবে।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-fee-receipt",
+        "label": {
+          "en": "Official Tuition Fee Receipt",
+          "hi": "आधिकारिक ट्यूशन शुल्क रसीद",
+          "bn": "অফিসিয়াল টিউশন ফি রসিদ"
+        },
+        "tip": {
+          "en": "Shows the exact tuition fee paid for the academic year.",
+          "hi": "शैक्षणिक वर्ष के लिए भुगतान की गई सटीक ट्यूशन फीस दिखाता है।",
+          "bn": "শিক্ষাবর্ষের জন্য প্রদত্ত সঠিক টিউশন ফি দেখায়।"
+        },
+        "required": true
+      },
+      {
+        "id": "doc-marksheet",
+        "label": {
+          "en": "Last Qualifying Exam Marksheet",
+          "hi": "अंतिम उत्तीर्ण परीक्षा की अंकतालिका",
+          "bn": "সর্বশেষ উত্তীর্ণ পরীক্ষার মার্কশিট"
+        },
+        "tip": {
+          "en": "Keep both front and back sides scanned if grades are on the back.",
+          "hi": "यदि ग्रेड पीछे हैं तो आगे और पीछे दोनों तरफ स्कैन रखें।",
+          "bn": "গ্রেড পেছনে থাকলে উভয় দিক স্ক্যান করে রাখুন।"
+        },
+        "required": true
+      }
+    ],
+    "applicationSteps": [
+      {
+        "en": "Check your family income bracket and technical course match.",
+        "hi": "अपनी पारिवारिक आय सीमा और तकनीकी पाठ्यक्रम मिलान जांचें।",
+        "bn": "আপনার পারিবারিক আয়ের সীমা এবং কারিগরি কোর্সের মিল যাচাই করুন।"
+      },
+      {
+        "en": "Gather fee receipt, income certificate, and marksheet.",
+        "hi": "शुल्क रसीद, आय प्रमाण पत्र और अंकतालिका एकत्र करें।",
+        "bn": "ফি রসিদ, আয়ের শংসাপত্র এবং মার্কশিট সংগ্রহ করুন।"
+      }
+    ]
+  }
+]
