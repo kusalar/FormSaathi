@@ -18,7 +18,15 @@ FormSaathi helps Indian students—especially first-generation learners and stud
 
 - **Voice-First Multilingual Assistant**: Supports **English (`en-IN`)**, **Hindi (`hi-IN`)**, and **Bengali (`bn-IN`)** via the browser Web Speech API (`SpeechRecognition` + `SpeechSynthesis`), with animated listening sound waves, live `Idle / Listening / Processing / Speaking` states, repeat/stop voice controls, and an always-available text fallback.
 - **Confirm-Before-Saving Intelligence**: Extracts course, academic year, institution type, family income bracket, and state from natural speech/text, asks **one question at a time**, and confirms detected details before saving.
-- **8 Distinct Interactive Pages**:
+- **8+ Interactive Pages & Personalised Opportunity Discovery**:
+  - **Opportunities For You (`/opportunities`)**: Unified personalised discovery across **Live Internships** (Himalayas + Remotive + Official Indian portals), **Live & Fresher Jobs** (Himalayas + Remotive + NCS/Company Career portals), and **Hackathons, Competitions & Student Ambassadors** (Devpost Live API + SIH, MIC, Microsoft, Google, AWS, IBM, MLH, Hack2skill Official Directories + Demo records).
+  - **API Routes**:
+    - `GET /api/internships` (`q`, `country`, `page`, `refresh`) — 5-min server cache, timeout & 429 handling, `Promise.allSettled` error isolation.
+    - `GET /api/jobs` (`q`, `country`, `page`, `refresh`) — non-internship roles with fresher/entry-level classification.
+    - `GET /api/scholarships` — National (NSP, AICTE, UGC, MoE), West Bengal (SVMCM, Aikyashree, OASIS), Corporate (HDFC Parivartan, Reliance Foundation), and Demo schemes.
+    - `GET /api/competitions` (`category`, `country`, `mode`, `q`, `page`, `refresh`) — Devpost Live API + Official Directories + Demo competitions.
+  - **Adding a New Competition Provider**: Implement `CompetitionProvider` (`src/lib/opportunities/competitions/types.ts`) and register it in `fetchAllCompetitions` (`src/lib/opportunities/competitions/aggregator.ts`).
+  - **Eligibility Verification Note**: Live APIs (Himalayas, Remotive, Devpost) and official directories do not guarantee selection or live dates; always verify eligibility, deadlines, and zero-fee status on the official organizer website before applying.
   1. **Home / Dashboard (`/`)**: Personalized welcome, hero illustration, live voice assistant widget, application & document readiness progress, profile-ranked demo scholarships, and recent activity.
   2. **My Profile (`/profile`)**: Editable student education profile with inline validation, reset option, and `localStorage` persistence.
   3. **Find Scholarships (`/scholarships`)**: Search bar, category filter pills (`All`, `Merit`, `STEM`, `State`, `Means`, `First-Gen`), mismatch filter, expandable cards, and detail modal.

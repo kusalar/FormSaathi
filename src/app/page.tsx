@@ -25,8 +25,10 @@ import { NATIONAL_OFFICIAL_SCHOLARSHIPS } from "@/lib/scholarships/providers/nat
 import { WEST_BENGAL_SCHOLARSHIPS } from "@/lib/scholarships/providers/westBengal";
 import { CORPORATE_SCHOLARSHIPS } from "@/lib/scholarships/providers/corporate";
 import { matchNormalizedScholarship } from "@/lib/scholarships/matcher";
-import { DEMO_OPPORTUNITIES } from "@/lib/opportunities/sources";
 import { OFFICIAL_INDIAN_INTERNSHIP_SOURCES } from "@/lib/opportunities/providers/indianOfficialSources";
+import { OFFICIAL_INDIAN_JOB_SOURCES } from "@/lib/opportunities/providers/indianOfficialJobs";
+import { OFFICIAL_COMPETITION_DIRECTORIES } from "@/lib/opportunities/competitions/providers/officialDirectories";
+import { matchCompetition } from "@/lib/opportunities/competitions/matcher";
 import { matchOpportunity } from "@/lib/opportunities/matcher";
 import { Opportunity } from "@/types";
 import { t, UI_TEXT } from "@/lib/i18n";
@@ -107,9 +109,118 @@ export default function HomePage() {
     };
   }, [profile]);
 
+  const [liveJob, setLiveJob] = useState<{
+    opp: Opportunity | null;
+    isLive: boolean;
+    loading: boolean;
+    error: string | null;
+  }>({
+    opp: null,
+    isLive: false,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/jobs?country=IN&page=1")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!active) return;
+        if (!ok || !data.ok || !Array.isArray(data.opportunities)) {
+          setLiveJob({
+            opp: null,
+            isLive: false,
+            loading: false,
+            error: "Live job provider temporarily unavailable.",
+          });
+          return;
+        }
+        const liveOnly = (data.opportunities as Opportunity[]).filter(
+          (o) => o.sourceBadge === "LIVE API"
+        );
+        const best = liveOnly
+          .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
+          .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+        setLiveJob({
+          opp: best?.opp || liveOnly[0] || null,
+          isLive: liveOnly.length > 0,
+          loading: false,
+          error: liveOnly.length === 0 ? "No live fresher/entry jobs matched." : null,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setLiveJob({
+          opp: null,
+          isLive: false,
+          loading: false,
+          error: "Live job provider temporarily unavailable.",
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [profile]);
+
+  const [liveComp, setLiveComp] = useState<{
+    opp: Opportunity | null;
+    isLive: boolean;
+    loading: boolean;
+    error: string | null;
+  }>({
+    opp: null,
+    isLive: false,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/competitions?country=IN&page=1")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!active) return;
+        if (!ok || !data.ok || !Array.isArray(data.opportunities)) {
+          setLiveComp({
+            opp: null,
+            isLive: false,
+            loading: false,
+            error: "Live competition API temporarily unavailable.",
+          });
+          return;
+        }
+        const liveOnly = (data.opportunities as Opportunity[]).filter(
+          (o) => o.sourceBadge === "LIVE API"
+        );
+        const best = liveOnly
+          .map((o) => ({ opp: o, match: matchCompetition(profile, o) }))
+          .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+        setLiveComp({
+          opp: best?.opp || liveOnly[0] || null,
+          isLive: liveOnly.length > 0,
+          loading: false,
+          error: liveOnly.length === 0 ? "No live hackathons available right now." : null,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setLiveComp({
+          opp: null,
+          isLive: false,
+          loading: false,
+          error: "Live competition API temporarily unavailable.",
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [profile]);
+
   const topInternshipMatch = liveInternship.opp
     ? matchOpportunity(profile, liveInternship.opp)
     : null;
+  const topLiveJobMatch = liveJob.opp ? matchOpportunity(profile, liveJob.opp) : null;
 
   const topIndianResearch = OFFICIAL_INDIAN_INTERNSHIP_SOURCES.map((o) => ({
     opp: o,
@@ -129,11 +240,21 @@ export default function HomePage() {
     .sort((a, b) => b.match.percentage - a.match.percentage)
     .slice(0, 3);
 
-  const topJob = DEMO_OPPORTUNITIES.filter(
-    (o) => o.category === "job" && o.status === "active"
+  const topOfficialComp = OFFICIAL_COMPETITION_DIRECTORIES.map((o) => ({
+    opp: o,
+    match: matchCompetition(profile, o),
+  })).sort((a, b) => b.match.percentage - a.match.percentage)[0];
+
+  const topAmbassador = OFFICIAL_COMPETITION_DIRECTORIES.filter(
+    (o) => o.competitionSubCategory === "student_ambassador"
   )
-    .map((o) => ({ opp: o, match: matchOpportunity(profile, o) }))
+    .map((o) => ({ opp: o, match: matchCompetition(profile, o) }))
     .sort((a, b) => b.match.percentage - a.match.percentage)[0];
+
+  const topJob = OFFICIAL_INDIAN_JOB_SOURCES.map((o) => ({
+    opp: o,
+    match: matchOpportunity(profile, o),
+  })).sort((a, b) => b.match.percentage - a.match.percentage)[0];
 
   const trackedCount = Object.keys(applicationTracking).length;
 
@@ -642,12 +763,43 @@ export default function HomePage() {
                 </div>
               )}
 
-              {topJob && (
-                <div className="rounded-2xl border border-amber-200/80 bg-amber-50/30 p-4 flex flex-col justify-between">
+              {liveJob.loading ? (
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4 animate-pulse space-y-2">
+                  <div className="h-4 w-28 bg-indigo-100 rounded" />
+                  <div className="h-4 w-3/4 bg-indigo-100 rounded" />
+                </div>
+              ) : liveJob.isLive && liveJob.opp && topLiveJobMatch ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">
-                        DEMO • Recommended Job
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                        <Radio className="w-3 h-3" />
+                        LIVE JOB • {liveJob.opp.sourceName}
+                      </span>
+                      <span className="text-xs font-extrabold text-indigo-700">
+                        {topLiveJobMatch.percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950">
+                      {liveJob.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {liveJob.opp.organisation} • {liveJob.opp.workMode}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    Explore Live Jobs <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ) : topJob ? (
+                <div className="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
+                        OFFICIAL SOURCE • JOB
                       </span>
                       <span className="text-xs font-extrabold text-emerald-700">
                         {topJob.match.percentage}% Match
@@ -664,7 +816,134 @@ export default function HomePage() {
                     href="/opportunities"
                     className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
                   >
-                    View Match Details <ArrowRight className="w-3.5 h-3.5" />
+                    Explore Career Portals <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          {/* Competitions You Might Like */}
+          <section className="rounded-3xl bg-white border border-indigo-100 shadow-sm p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-indigo-950">
+                  Competitions You Might Like
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Live hackathons (Devpost), Indian innovation challenges &amp; student ambassador programmes
+                </p>
+              </div>
+              <Link
+                href="/opportunities"
+                className="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"
+              >
+                Explore All Competitions
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {liveComp.loading ? (
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4 animate-pulse space-y-2">
+                  <div className="h-4 w-28 bg-indigo-100 rounded" />
+                  <div className="h-4 w-3/4 bg-indigo-100 rounded" />
+                </div>
+              ) : liveComp.isLive && liveComp.opp ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                        <Radio className="w-3 h-3" />
+                        LIVE API • Devpost
+                      </span>
+                      <span className="text-xs font-extrabold text-indigo-700">
+                        {matchCompetition(profile, liveComp.opp).percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950 leading-snug">
+                      {liveComp.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {liveComp.opp.eventDatesLabel || liveComp.opp.location}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    View Live Hackathons <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4 flex flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-rose-800">
+                      Live Hackathons Temporarily Unavailable
+                    </p>
+                    <p className="text-[11px] text-rose-700 mt-1">
+                      {liveComp.error || "Devpost could not be reached right now."}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    Open Competitions <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
+
+              {topOfficialComp && (
+                <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
+                        OFFICIAL DIRECTORY
+                      </span>
+                      <span className="text-xs font-extrabold text-indigo-700">
+                        {topOfficialComp.match.percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950 leading-snug">
+                      {topOfficialComp.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {topOfficialComp.opp.organisation}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    Explore Official Portal <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
+
+              {topAmbassador && (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 uppercase">
+                        STUDENT AMBASSADOR
+                      </span>
+                      <span className="text-xs font-extrabold text-indigo-700">
+                        {topAmbassador.match.percentage}% Match
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-indigo-950 leading-snug">
+                      {topAmbassador.opp.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {topAmbassador.opp.organisation}
+                    </p>
+                  </div>
+                  <Link
+                    href="/opportunities"
+                    className="mt-3 text-xs font-bold text-indigo-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    View Ambassador Programmes <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               )}

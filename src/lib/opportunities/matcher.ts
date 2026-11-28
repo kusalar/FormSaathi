@@ -258,7 +258,44 @@ export function matchOpportunity(
     gaps.push(`Work mode is ${opp.workMode}`);
   }
 
-  // 10. Category Preference bonus (weight 5)
+  // 10. Job Experience & Category Relevance
+  let expCap = false;
+  if (opp.category === "job") {
+    if (opp.experienceClassification === "explicit_fresher") {
+      totalWeight += 15;
+      earnedWeight += 15;
+      reasons.push("Explicitly accepts freshers / new graduates");
+    } else if (opp.experienceClassification === "entry_level") {
+      totalWeight += 15;
+      earnedWeight += 12;
+      reasons.push("Entry-level / junior role");
+    } else if (opp.experienceClassification === "experience_required") {
+      totalWeight += 15;
+      expCap = true;
+      gaps.push("Requires prior work experience (not fresher-level)");
+    } else {
+      verificationNeeded.push("Experience requirement (not explicitly stated)");
+    }
+
+    const userBranchTokens = normalizeBranch(profile.branch || "");
+    if (
+      opp.jobCategoryGroup === "ece_electronics" &&
+      (userBranchTokens.includes("ece") || userBranchTokens.includes("eee"))
+    ) {
+      totalWeight += 10;
+      earnedWeight += 10;
+      reasons.push("Aligned with ECE / VLSI / Electronics track");
+    } else if (
+      opp.jobCategoryGroup === "software_it" &&
+      (userBranchTokens.includes("cse") || userBranchTokens.includes("it"))
+    ) {
+      totalWeight += 10;
+      earnedWeight += 10;
+      reasons.push("Aligned with CSE / IT / Software track");
+    }
+  }
+
+  // 11. Category Preference bonus (weight 5)
   if ((profile.preferredCategories || []).length > 0) {
     totalWeight += 5;
     const prefLower = (profile.preferredCategories || []).map((c) => c.toLowerCase());
@@ -274,6 +311,8 @@ export function matchOpportunity(
   let percentage = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
   if (hardFail) {
     percentage = Math.min(percentage, 35);
+  } else if (expCap) {
+    percentage = Math.min(percentage, 45);
   }
 
   const eligibilityStatus: EligibilityBadgeStatus = hardFail

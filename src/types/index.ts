@@ -110,6 +110,9 @@ export type ApplicationTrackingStatus =
 export type SourceBadgeType =
   | "LIVE API"
   | "OFFICIAL SOURCE"
+  | "OFFICIAL DIRECTORY"
+  | "CURATED"
+  | "DEMONSTRATION"
   | "NEEDS VERIFICATION"
   | "DEMO";
 
@@ -132,6 +135,29 @@ export type ApplicationStatusLabel =
   | "Upcoming"
   | "Closed"
   | "Unverified";
+
+export type ExperienceClassification =
+  | "explicit_fresher"
+  | "entry_level"
+  | "experience_required"
+  | "experience_unknown";
+
+export type JobCategoryGroup =
+  | "software_it"
+  | "ece_electronics"
+  | "other_engineering"
+  | "graduate_programme";
+
+export type CompetitionSubCategory =
+  | "hackathon"
+  | "coding_competition"
+  | "innovation_challenge"
+  | "student_ambassador"
+  | "fellowship"
+  | "entrepreneurship"
+  | "research_competition"
+  | "design_competition"
+  | "other";
 
 export interface Opportunity {
   id: string;
@@ -170,6 +196,16 @@ export interface Opportunity {
   engineeringDomain?: EngineeringDomainType;
   applicationStatusLabel?: ApplicationStatusLabel;
   companyLogo?: string | null;
+  experienceClassification?: ExperienceClassification;
+  jobCategoryGroup?: JobCategoryGroup;
+  salaryCurrency?: string | null;
+  seniorityLabels?: string[];
+  competitionSubCategory?: CompetitionSubCategory;
+  teamSizeLabel?: string | null;
+  prizeOrReward?: string | null;
+  participationFee?: string | null;
+  eventDatesLabel?: string | null;
+  beginnerFriendly?: boolean;
 }
 
 export interface ApplicationTrackingItem {

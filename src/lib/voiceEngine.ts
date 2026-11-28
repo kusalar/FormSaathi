@@ -1,6 +1,9 @@
 import { Language, StudentProfile, VoiceMessage } from "@/types";
 import { COURSE_OPTIONS, INCOME_OPTIONS, STATE_OPTIONS, YEAR_OPTIONS, SCHOLARSHIPS, evaluateEligibility } from "./scholarships";
 import { DEMO_OPPORTUNITIES } from "./opportunities/sources";
+import { OFFICIAL_INDIAN_JOB_SOURCES } from "./opportunities/providers/indianOfficialJobs";
+import { OFFICIAL_COMPETITION_DIRECTORIES } from "./opportunities/competitions/providers/officialDirectories";
+import { matchCompetition } from "./opportunities/competitions/matcher";
 import { matchOpportunity } from "./opportunities/matcher";
 import { NATIONAL_OFFICIAL_SCHOLARSHIPS } from "./scholarships/providers/national";
 import { WEST_BENGAL_SCHOLARSHIPS } from "./scholarships/providers/westBengal";
@@ -480,6 +483,91 @@ export function generateAssistantReply(
     };
   }
 
+  // Hackathons, Competitions & Student Ambassador intents (English, Hindi, Bengali)
+  const wantsHackathon =
+    lower.includes("hackathon") ||
+    lower.includes("hackathons") ||
+    lower.includes("हैकाथॉन") ||
+    lower.includes("হ্যাকাথন");
+  const wantsCompetition =
+    lower.includes("competition") ||
+    lower.includes("competitions") ||
+    lower.includes("प्रतियोगिता") ||
+    lower.includes("প্রতিযোগিতা");
+  const wantsAmbassador =
+    lower.includes("ambassador") ||
+    lower.includes("एंबेसडर") ||
+    lower.includes("অ্যাম্বাসাডর");
+
+  if (wantsHackathon || wantsCompetition || wantsAmbassador) {
+    const mentionsEceComp = lower.includes("ece") || lower.includes("vlsi");
+    const wantsOnlineComp =
+      lower.includes("online") || lower.includes("ऑनलाइन") || lower.includes("অনলাইন");
+    const wantsBeginnerComp =
+      lower.includes("beginner") || lower.includes("शुरुआती") || lower.includes("নতুন");
+
+    const tempProfile: StudentProfile = {
+      ...profile,
+      ...(mentionsEceComp && !profile.branch ? { branch: "ECE" } : {}),
+    };
+
+    const hits = OFFICIAL_COMPETITION_DIRECTORIES.filter((opp) => {
+      if (wantsAmbassador && opp.competitionSubCategory !== "student_ambassador") {
+        return false;
+      }
+      if (wantsOnlineComp && opp.workMode !== "Remote" && opp.workMode !== "Hybrid") {
+        return false;
+      }
+      if (wantsBeginnerComp && !opp.beginnerFriendly) return false;
+      if (mentionsEceComp) {
+        const hay = `${opp.title} ${opp.description} ${opp.requiredBranches.join(" ")}`.toLowerCase();
+        if (!hay.includes("ece") && !hay.includes("iot") && !hay.includes("hardware")) {
+          return false;
+        }
+      }
+      return true;
+    })
+      .map((opp) => ({ opp, match: matchCompetition(tempProfile, opp) }))
+      .sort((a, b) => b.match.percentage - a.match.percentage)
+      .slice(0, 3);
+
+    const text =
+      lang === "hi"
+        ? `यहाँ ${hits.length} आधिकारिक हैकाथॉन / प्रतियोगिता / एंबेसडर अवसर हैं। पात्रता और अंतिम तिथियों की पुष्टि आधिकारिक पोर्टल पर करें:`
+        : lang === "bn"
+        ? `এখানে ${hits.length}টি অফিসিয়াল হ্যাকাথন / প্রতিযোগিতা / অ্যাম্বাসাডর সুযোগ রয়েছে। যোগ্যতা ও শেষ তারিখ অফিসিয়াল পোর্টালে যাচাই করুন:`
+        : `Here are ${hits.length} relevant hackathons, competitions, and ambassador programmes (please verify current dates and eligibility on the official organizer website):`;
+
+    return {
+      detectedUpdates: {},
+      reply: {
+        role: "assistant",
+        lang,
+        text,
+        matchedScholarships: hits.map(({ opp, match }) => ({
+          id: opp.id,
+          name: opp.title,
+          amount: `${opp.sourceBadge || "OFFICIAL DIRECTORY"} • ${match.percentage}%`,
+          reasons:
+            match.reasons.length > 0
+              ? match.reasons
+              : ["Verify current season dates on official portal"],
+        })),
+        actions: [
+          {
+            label:
+              lang === "hi"
+                ? "सभी हैकाथॉन और प्रतियोगिताएं देखें"
+                : lang === "bn"
+                ? "সব হ্যাকাথন ও প্রতিযোগিতা দেখুন"
+                : "Open Hackathons & Competitions",
+            href: "/opportunities",
+          },
+        ],
+      },
+    };
+  }
+
   // Scholarship discovery intents (government, West Bengal, engineering, closing soon)
   const wantsScholarship =
     lower.includes("scholarship") ||
@@ -596,24 +684,48 @@ export function generateAssistantReply(
     lower.includes("remote") || lower.includes("रिमोट") || lower.includes("রিমোট");
   const mentionsEce = lower.includes("ece") || lower.includes("electronics");
 
+  const wantsFresher =
+    lower.includes("fresher") ||
+    lower.includes("graduate") ||
+    lower.includes("trainee") ||
+    lower.includes("फ्रेशर") ||
+    lower.includes("ফ্রেশার");
+  const wantsVlsi = lower.includes("vlsi") || lower.includes("semiconductor");
+  const wantsSoftware =
+    lower.includes("software") || lower.includes("developer") || lower.includes("সফটওয়্যার");
+
   if (wantsInternship || wantsJob) {
     const targetCategory = wantsInternship ? "internship" : "job";
     const tempProfile: StudentProfile = {
       ...profile,
-      ...(mentionsEce && !profile.branch ? { branch: "ECE" } : {}),
+      ...((mentionsEce || wantsVlsi) && !profile.branch ? { branch: "ECE" } : {}),
+      ...(wantsSoftware && !profile.branch ? { branch: "CSE" } : {}),
       ...(wantsRemote && !profile.preferredWorkMode ? { preferredWorkMode: "Remote" } : {}),
     };
 
-    const hits = DEMO_OPPORTUNITIES.filter((opp) => {
-      if (opp.category !== targetCategory) return false;
-      if (opp.status === "expired") return false;
-      if (wantsRemote && opp.workMode !== "Remote") return false;
-      if (mentionsEce) {
-        const branches = opp.requiredBranches.map((b) => b.toLowerCase());
-        if (branches.length > 0 && !branches.includes("ece")) return false;
-      }
-      return true;
-    })
+    const pool = wantsJob
+      ? [
+          ...OFFICIAL_INDIAN_JOB_SOURCES,
+          ...DEMO_OPPORTUNITIES.filter((o) => o.category === "job"),
+        ]
+      : DEMO_OPPORTUNITIES.filter((o) => o.category === "internship");
+
+    const hits = pool
+      .filter((opp) => {
+        if (opp.category !== targetCategory) return false;
+        if (opp.status === "expired") return false;
+        if (wantsRemote && opp.workMode !== "Remote") return false;
+        if (wantsFresher && opp.experienceClassification === "experience_required") {
+          return false;
+        }
+        if (mentionsEce || wantsVlsi) {
+          const hay = `${opp.title} ${opp.description} ${opp.requiredBranches.join(" ")}`.toLowerCase();
+          if (!hay.includes("ece") && !hay.includes("vlsi") && !hay.includes("embedded") && !hay.includes("semiconductor")) {
+            return false;
+          }
+        }
+        return true;
+      })
       .map((opp) => ({ opp, match: matchOpportunity(tempProfile, opp) }))
       .sort((a, b) => b.match.percentage - a.match.percentage)
       .slice(0, 3);

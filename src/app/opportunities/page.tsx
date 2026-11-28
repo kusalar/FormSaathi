@@ -29,13 +29,23 @@ import {
 import { isOpportunityExpired, matchOpportunity } from "@/lib/opportunities/matcher";
 import {
   ApplicationTrackingStatus,
+  CompetitionSubCategory,
   EngineeringDomainType,
+  ExperienceClassification,
+  JobCategoryGroup,
   Opportunity,
   WorkMode,
 } from "@/types";
 import type { ProviderStatusSummary } from "@/lib/opportunities/providers/aggregator";
 
-type TabType = "all" | "scholarship" | "internship" | "job" | "saved" | "history";
+type TabType =
+  | "all"
+  | "scholarship"
+  | "internship"
+  | "job"
+  | "competition"
+  | "saved"
+  | "history";
 type DomainFilterType = "all" | "indian_official" | EngineeringDomainType;
 
 const STATUS_OPTIONS: Array<{ value: ApplicationTrackingStatus; label: string }> = [
@@ -81,9 +91,36 @@ export default function OpportunitiesPage() {
     page: 1,
   });
 
+  const [liveJobsState, setLiveJobsState] = useState<LiveInternshipsState>({
+    items: [],
+    providers: [],
+    isLive: false,
+    loading: true,
+    error: null,
+    fetchedAt: null,
+    totalCount: 0,
+    page: 1,
+  });
+
+  const [liveCompState, setLiveCompState] = useState<LiveInternshipsState>({
+    items: [],
+    providers: [],
+    isLive: false,
+    loading: true,
+    error: null,
+    fetchedAt: null,
+    totalCount: 0,
+    page: 1,
+  });
+
   const [todayIso, setTodayIso] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<TabType>("internship");
   const [domainFilter, setDomainFilter] = useState<DomainFilterType>("all");
+  const [jobCategoryFilter, setJobCategoryFilter] = useState<"all" | JobCategoryGroup>("all");
+  const [experienceFilter, setExperienceFilter] = useState<"all" | ExperienceClassification>("all");
+  const [employmentTypeFilter, setEmploymentTypeFilter] = useState<string>("all");
+  const [compSubCatFilter, setCompSubCatFilter] = useState<"all" | CompetitionSubCategory>("all");
+  const [beginnerOnly, setBeginnerOnly] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [countryScope, setCountryScope] = useState<"IN" | "all">("IN");
@@ -139,23 +176,117 @@ export default function OpportunitiesPage() {
     [countryScope, query, showToast]
   );
 
+  const fetchLiveJobs = useCallback(
+    async (opts?: { page?: number; refresh?: boolean; q?: string; country?: "IN" | "all" }) => {
+      const targetPage = opts?.page ?? 1;
+      const targetCountry = opts?.country ?? countryScope;
+      const targetQuery = opts?.q ?? query;
+
+      setLiveJobsState((prev) => ({ ...prev, loading: true, error: null }));
+      try {
+        const params = new URLSearchParams();
+        params.set("country", targetCountry);
+        params.set("page", String(targetPage));
+        if (targetQuery.trim()) params.set("q", targetQuery.trim());
+        if (opts?.refresh) params.set("refresh", "1");
+
+        const res = await fetch(`/api/jobs?${params.toString()}`);
+        const data = await res.json();
+
+        setTodayIso(new Date().toISOString().slice(0, 10));
+        setLiveJobsState({
+          items: Array.isArray(data.opportunities) ? data.opportunities : [],
+          providers: Array.isArray(data.providers) ? data.providers : [],
+          isLive: Boolean(data.isLive),
+          loading: false,
+          error: !data.isLive ? "Live job API providers temporarily unavailable." : null,
+          fetchedAt: data.fetchedAt || null,
+          totalCount: Number(data.totalCount || 0),
+          page: Number(data.page || targetPage),
+        });
+
+        if (opts?.refresh) {
+          showToast("Jobs refreshed", "Updated from live & official job sources.", "success");
+        }
+      } catch {
+        setLiveJobsState((prev) => ({
+          ...prev,
+          loading: false,
+          isLive: false,
+          error: "Network error while contacting job providers.",
+        }));
+      }
+    },
+    [countryScope, query, showToast]
+  );
+
+  const fetchLiveCompetitions = useCallback(
+    async (opts?: { page?: number; refresh?: boolean; q?: string; country?: "IN" | "all" }) => {
+      const targetPage = opts?.page ?? 1;
+      const targetCountry = opts?.country ?? countryScope;
+      const targetQuery = opts?.q ?? query;
+
+      setLiveCompState((prev) => ({ ...prev, loading: true, error: null }));
+      try {
+        const params = new URLSearchParams();
+        params.set("country", targetCountry);
+        params.set("page", String(targetPage));
+        if (targetQuery.trim()) params.set("q", targetQuery.trim());
+        if (opts?.refresh) params.set("refresh", "1");
+
+        const res = await fetch(`/api/competitions?${params.toString()}`);
+        const data = await res.json();
+
+        setTodayIso(new Date().toISOString().slice(0, 10));
+        setLiveCompState({
+          items: Array.isArray(data.opportunities) ? data.opportunities : [],
+          providers: Array.isArray(data.providers) ? data.providers : [],
+          isLive: Boolean(data.isLive),
+          loading: false,
+          error: !data.isLive ? "Live competition API temporarily unavailable." : null,
+          fetchedAt: data.fetchedAt || null,
+          totalCount: Number(data.totalLiveCount || 0),
+          page: Number(data.page || targetPage),
+        });
+      } catch {
+        setLiveCompState((prev) => ({
+          ...prev,
+          loading: false,
+          isLive: false,
+          error: "Network error while contacting competition providers.",
+        }));
+      }
+    },
+    [countryScope, query]
+  );
+
   useEffect(() => {
     if (internshipSourceMode === "live") {
       const timer = setTimeout(() => {
         void fetchLiveInternships({ page: 1, country: countryScope });
+        void fetchLiveJobs({ page: 1, country: countryScope });
+        void fetchLiveCompetitions({ page: 1, country: countryScope });
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [internshipSourceMode, countryScope, fetchLiveInternships]);
+  }, [internshipSourceMode, countryScope, fetchLiveInternships, fetchLiveJobs, fetchLiveCompetitions]);
 
   const combinedOpportunities = useMemo(() => {
-    const demoNonInterns = DEMO_OPPORTUNITIES.filter((o) => o.category !== "internship");
+    const demoScholarships = DEMO_OPPORTUNITIES.filter((o) => o.category === "scholarship");
     const internships =
       internshipSourceMode === "live"
         ? liveState.items
         : DEMO_OPPORTUNITIES.filter((o) => o.category === "internship");
-    return [...internships, ...demoNonInterns];
-  }, [internshipSourceMode, liveState.items]);
+    const jobs =
+      internshipSourceMode === "live"
+        ? liveJobsState.items
+        : DEMO_OPPORTUNITIES.filter((o) => o.category === "job");
+    const comps =
+      internshipSourceMode === "live"
+        ? liveCompState.items
+        : liveCompState.items.filter((o) => o.isDemo);
+    return [...internships, ...jobs, ...comps, ...demoScholarships];
+  }, [internshipSourceMode, liveState.items, liveJobsState.items, liveCompState.items]);
 
   const enriched = useMemo(() => {
     return combinedOpportunities
@@ -181,6 +312,9 @@ export default function OpportunitiesPage() {
       scholarship: activeMatching.filter((i) => i.opp.category === "scholarship").length,
       internship: activeMatching.filter((i) => i.opp.category === "internship").length,
       job: activeMatching.filter((i) => i.opp.category === "job").length,
+      competition: activeMatching.filter((i) =>
+        ["hackathon", "competition", "ambassador", "fellowship"].includes(i.opp.category)
+      ).length,
     };
   }, [activeMatching]);
 
@@ -199,6 +333,12 @@ export default function OpportunitiesPage() {
       if (
         (tab === "scholarship" || tab === "internship" || tab === "job") &&
         opp.category !== tab
+      ) {
+        return false;
+      }
+      if (
+        tab === "competition" &&
+        !["hackathon", "competition", "ambassador", "fellowship"].includes(opp.category)
       ) {
         return false;
       }
@@ -224,6 +364,34 @@ export default function OpportunitiesPage() {
       if (workModeFilter !== "all" && opp.workMode !== workModeFilter) return false;
       if (locationFilter !== "all" && opp.location !== locationFilter) return false;
       if (deadlineFilter === "has_deadline" && !opp.deadline) return false;
+      if (tab === "competition") {
+        if (
+          compSubCatFilter !== "all" &&
+          opp.competitionSubCategory !== compSubCatFilter
+        ) {
+          return false;
+        }
+        if (beginnerOnly && !opp.beginnerFriendly) {
+          return false;
+        }
+      }
+      if (tab === "job") {
+        if (jobCategoryFilter !== "all" && opp.jobCategoryGroup !== jobCategoryFilter) {
+          return false;
+        }
+        if (
+          experienceFilter !== "all" &&
+          opp.experienceClassification !== experienceFilter
+        ) {
+          return false;
+        }
+        if (
+          employmentTypeFilter !== "all" &&
+          (opp.employmentType || "Full-time") !== employmentTypeFilter
+        ) {
+          return false;
+        }
+      }
 
       const q = query.trim().toLowerCase();
       if (q) {
@@ -239,6 +407,11 @@ export default function OpportunitiesPage() {
     applicationTracking,
     showExpiredOrIneligible,
     domainFilter,
+    jobCategoryFilter,
+    experienceFilter,
+    employmentTypeFilter,
+    compSubCatFilter,
+    beginnerOnly,
     sourceFilter,
     workModeFilter,
     locationFilter,
@@ -352,12 +525,20 @@ export default function OpportunitiesPage() {
           {internshipSourceMode === "live" && (
             <button
               type="button"
-              disabled={liveState.loading}
-              onClick={() => void fetchLiveInternships({ page: liveState.page, refresh: true })}
+              disabled={liveState.loading || liveJobsState.loading || liveCompState.loading}
+              onClick={() => {
+                void fetchLiveInternships({ page: liveState.page, refresh: true });
+                void fetchLiveJobs({ page: liveJobsState.page, refresh: true });
+                void fetchLiveCompetitions({ page: liveCompState.page, refresh: true });
+              }}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${liveState.loading ? "animate-spin" : ""}`} />
-              Refresh Internships
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${
+                  liveState.loading || liveJobsState.loading ? "animate-spin" : ""
+                }`}
+              />
+              Refresh Live Sources
             </button>
           )}
         </div>
@@ -413,9 +594,10 @@ export default function OpportunitiesPage() {
           {(
             [
               { id: "internship", label: `Internships (${counts.internship})` },
+              { id: "job", label: `Jobs (${counts.job})` },
+              { id: "competition", label: `Hackathons & Competitions (${counts.competition})` },
               { id: "all", label: "All Open" },
               { id: "scholarship", label: "Scholarships (Demo)" },
-              { id: "job", label: "Jobs (Demo)" },
               { id: "saved", label: `Saved (${savedScholarships.length})` },
               { id: "history", label: `Application History (${trackingList.length})` },
             ] as Array<{ id: TabType; label: string }>
@@ -466,7 +648,13 @@ export default function OpportunitiesPage() {
           onSubmit={(e) => {
             e.preventDefault();
             if (internshipSourceMode === "live") {
-              void fetchLiveInternships({ page: 1, q: query });
+              if (tab === "job") {
+                void fetchLiveJobs({ page: 1, q: query });
+              } else if (tab === "competition") {
+                void fetchLiveCompetitions({ page: 1, q: query });
+              } else {
+                void fetchLiveInternships({ page: 1, q: query });
+              }
             }
           }}
           className="grid grid-cols-1 sm:grid-cols-12 gap-2.5"
@@ -540,6 +728,91 @@ export default function OpportunitiesPage() {
             Go
           </button>
         </form>
+
+        {/* Competition-Specific Filters (when Hackathons & Competitions tab is active) */}
+        {tab === "competition" && (
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <select
+              aria-label="Filter by competition subcategory"
+              value={compSubCatFilter}
+              onChange={(e) =>
+                setCompSubCatFilter(e.target.value as "all" | CompetitionSubCategory)
+              }
+              className="rounded-xl border border-indigo-100 bg-indigo-50/40 px-2.5 py-2 text-xs font-semibold text-indigo-950"
+            >
+              <option value="all">All Competition Types</option>
+              <option value="hackathon">Hackathons</option>
+              <option value="coding_competition">Coding Competitions</option>
+              <option value="innovation_challenge">Innovation Challenges</option>
+              <option value="student_ambassador">Student Ambassadors</option>
+              <option value="fellowship">Fellowships</option>
+              <option value="research_competition">Research Competitions</option>
+              <option value="entrepreneurship">Entrepreneurship</option>
+            </select>
+
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50/40 border border-indigo-100 text-xs font-semibold text-indigo-950 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={beginnerOnly}
+                onChange={(e) => setBeginnerOnly(e.target.checked)}
+                className="rounded text-indigo-600"
+              />
+              Beginner-Friendly Only
+            </label>
+          </div>
+        )}
+
+        {/* Job-Specific Filters (when Jobs tab is active) */}
+        {tab === "job" && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <select
+              aria-label="Filter by job category"
+              value={jobCategoryFilter}
+              onChange={(e) =>
+                setJobCategoryFilter(e.target.value as "all" | JobCategoryGroup)
+              }
+              className="rounded-xl border border-indigo-100 bg-indigo-50/40 px-2.5 py-2 text-xs font-semibold text-indigo-950"
+            >
+              <option value="all">All Job Categories</option>
+              <option value="software_it">Software &amp; IT</option>
+              <option value="ece_electronics">ECE, VLSI &amp; Electronics</option>
+              <option value="other_engineering">Other Engineering</option>
+              <option value="graduate_programme">Graduate Programmes</option>
+            </select>
+
+            <select
+              aria-label="Filter by fresher or experience level"
+              value={experienceFilter}
+              onChange={(e) =>
+                setExperienceFilter(
+                  e.target.value as "all" | ExperienceClassification
+                )
+              }
+              className="rounded-xl border border-indigo-100 bg-indigo-50/40 px-2.5 py-2 text-xs font-semibold text-indigo-950"
+            >
+              <option value="all">All Experience Levels</option>
+              <option value="explicit_fresher">Fresher Friendly</option>
+              <option value="entry_level">Entry-Level</option>
+              <option value="experience_unknown">Experience Unknown</option>
+              <option value="experience_required">Experience Required</option>
+            </select>
+
+            <select
+              aria-label="Filter by employment type"
+              value={employmentTypeFilter}
+              onChange={(e) => setEmploymentTypeFilter(e.target.value)}
+              className="rounded-xl border border-indigo-100 bg-indigo-50/40 px-2.5 py-2 text-xs font-semibold text-indigo-950"
+            >
+              <option value="all">All Employment Types</option>
+              <option value="Full Time">Full Time</option>
+              <option value="Full-time">Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Contract">Contract</option>
+              <option value="Graduate programme">Graduate programme</option>
+              <option value="Entry-level">Entry-level</option>
+            </select>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
           <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -661,6 +934,16 @@ export default function OpportunitiesPage() {
                         {opp.indiaEligibility === "india_based" && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800">
                             INDIA-BASED
+                          </span>
+                        )}
+                        {opp.experienceClassification === "explicit_fresher" && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800">
+                            FRESHER FRIENDLY
+                          </span>
+                        )}
+                        {opp.experienceClassification === "entry_level" && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800">
+                            ENTRY LEVEL
                           </span>
                         )}
                         <span

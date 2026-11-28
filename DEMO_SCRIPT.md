@@ -23,10 +23,11 @@
   4. FormSaathi asks the remaining questions **one at a time** (Institution Type → Family Income → State).
   5. Select `Government`, `₹5 Lakh – ₹8 Lakh`, and `West Bengal`.
 
-### 1:50 – 2:30 | Scholarship Matching & Document Checklist
-- **Show**: FormSaathi immediately presents **matching demonstration scholarships** and explains **why each result matches** (e.g. course match, income limit).
-- **Action**: Click **View** on a matched scholarship to open the **Detail Modal** (showing eligibility breakdown & guided steps), then click **Prepare Documents** to jump to **Document Checklist (`/documents`)**.
-- **Action**: Check off 1–2 documents (e.g., *Marksheet*, *College Bonafide*) and show the completion percentage and **My Progress (`/progress`)** updating live.
+### 1:50 – 2:30 | Personalised Discovery (Scholarships, Internships, Jobs & Hackathons)
+- **Show**: FormSaathi's **Opportunities For You (`/opportunities`)** and **Find Scholarships (`/scholarships`)**:
+  1. Switch between **Internships** (Live Himalayas + Official Indian portals), **Jobs** (Live + Fresher-Friendly / Graduate Trainee), and **Hackathons & Competitions** (Live Devpost API + SIH / Microsoft / Google / AWS / MLH Official Directories).
+  2. Highlight clear **LIVE API**, **OFFICIAL DIRECTORY**, **NEEDS VERIFICATION**, and **DEMO** badges, plus **Save** and **Track Status** (`Interested`, `Applied`, `Notes`).
+  3. Open **Document Checklist (`/documents`)** and check off documents to show live progress tracking.
 
 ### 2:30 – 3:00 | Social Impact & Closing
 - **Say**: *"FormSaathi turns an intimidating, multi-page form process into a friendly, trustworthy 2-minute conversation—empowering first-generation learners across Bharat to check eligibility, prepare documents safely, and apply with confidence on official portals."*
