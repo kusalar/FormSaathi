@@ -1222,7 +1222,7 @@ function OpportunitiesContent() {
                 ← Previous Page
               </button>
               <span className="text-xs font-semibold text-slate-600">
-                Page {liveState.page} • {liveState.totalCount} live API listings
+                Page {liveState.page} of {Math.max(1, Math.ceil(liveState.totalCount / 20))} • {liveState.totalCount} live API listings
               </span>
               <button
                 type="button"
