@@ -773,6 +773,79 @@ export function generateAssistantReply(
     };
   }
 
+  // Phase 5.6 Unified Recommendation Intents
+  const wantsUnifiedClosingSoon =
+    lower.includes("closing soon") ||
+    lower.includes("deadline") ||
+    lower.includes("जल्द बंद") ||
+    lower.includes("শীঘ্রই শেষ");
+  const wantsUnifiedSaved =
+    lower.includes("saved") ||
+    lower.includes("सहेजे गए") ||
+    lower.includes("সংরক্ষিত");
+  const wantsUnifiedRecommendations =
+    wantsUnifiedClosingSoon ||
+    wantsUnifiedSaved ||
+    lower.includes("best opportunities") ||
+    lower.includes("recommend") ||
+    lower.includes("for me right now") ||
+    lower.includes("ece background") ||
+    lower.includes("what should i apply") ||
+    lower.includes("सबसे अच्छे अवसर") ||
+    lower.includes("मेरे लिए अवसर") ||
+    lower.includes("সেরা সুযোগ") ||
+    lower.includes("আমার জন্য সুযোগ");
+
+  if (wantsUnifiedRecommendations) {
+    const targetHref = wantsUnifiedClosingSoon
+      ? "/recommendations?section=closing_soon"
+      : wantsUnifiedSaved
+      ? "/recommendations?filter=saved"
+      : "/recommendations";
+
+    const text = wantsUnifiedClosingSoon
+      ? lang === "hi"
+        ? "मैंने आपके लिए जल्द बंद होने वाले अवसरों का सेक्शन तैयार किया है। ध्यान दें: ये प्रारंभिक मिलान हैं — अंतिम पात्रता और अंतिम तिथि आधिकारिक पोर्टल पर अवश्य जांचें।"
+        : lang === "bn"
+        ? "আমি আপনার জন্য শীঘ্রই শেষ হতে চলা সুযোগগুলোর তালিকা তৈরি করেছি। মনে রাখবেন: এগুলো প্রাথমিক মিল — চূড়ান্ত যোগ্যতা ও শেষ তারিখ অফিসিয়াল পোর্টালে যাচাই করুন।"
+        : "I've opened the Closing Soon unified recommendations for you. Note: match scores are preliminary guidance — always verify final eligibility and deadlines on the official portal."
+      : wantsUnifiedSaved
+      ? lang === "hi"
+        ? "आप अपने सहेजे गए और ट्रैक किए गए सभी अवसर 'Opportunities For You' पेज पर देख सकते हैं।"
+        : lang === "bn"
+        ? "আপনি আপনার সংরক্ষিত ও ট্র্যাক করা সব সুযোগ 'Opportunities For You' পেজে দেখতে পারেন।"
+        : "You can review all your saved and tracked opportunities in one place on the Opportunities For You page."
+      : lang === "hi"
+      ? "आपकी प्रोफ़ाइल के आधार पर छात्रवृत्ति, इंटर्नशिप, नौकरी, हैकथॉन और छात्र नेतृत्व के सर्वोत्तम अवसर एक साथ 'Opportunities For You' में रैंक किए गए हैं। ध्यान दें: यह केवल प्रारंभिक पात्रता मार्गदर्शन है — अंतिम पुष्टि आधिकारिक पोर्टल पर करें।"
+      : lang === "bn"
+      ? "আপনার প্রোফাইল অনুযায়ী বৃত্তি, ইন্টার্নশিপ, চাকরি, হ্যাকাথন এবং স্টুডেন্ট লিডারশিপের সেরা সুযোগগুলো একসাথে 'Opportunities For You'-তে সাজানো হয়েছে। মনে রাখবেন: এটি কেবল প্রাথমিক যোগ্যতা নির্দেশিকা — চূড়ান্ত তথ্য অফিসিয়াল পোর্টালে যাচাই করুন।"
+      : "I've ranked your top opportunities across scholarships, internships, jobs, hackathons, and leadership in one unified feed on Opportunities For You. These are preliminary eligibility estimates — please confirm final criteria on each official portal.";
+
+    return {
+      detectedUpdates: {},
+      reply: {
+        role: "assistant",
+        lang,
+        text,
+        actions: [
+          {
+            label:
+              lang === "hi"
+                ? "आपके लिए अवसर खोलें"
+                : lang === "bn"
+                ? "আপনার জন্য সুযোগ খুলুন"
+                : wantsUnifiedClosingSoon
+                ? "View Closing Soon"
+                : wantsUnifiedSaved
+                ? "View Saved Opportunities"
+                : "Open Opportunities For You",
+            href: targetHref,
+          },
+        ],
+      },
+    };
+  }
+
   // Document checklist intent
   if (lower.includes("document") || lower.includes("checklist") || lower.includes("दस्तावेज़") || lower.includes("নথি")) {
     const text =

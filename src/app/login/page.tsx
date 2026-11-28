@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { sanitizeRedirectPath } from "@/lib/supabase/redirect";
 import { useApp } from "@/context/AppContext";
 
 type AuthMode = "signin" | "signup" | "reset";
@@ -41,8 +42,7 @@ function formatAuthError(msg: string): string {
 function LoginFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawNext = searchParams.get("next") || "/profile";
-  const nextPath = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/profile";
+  const nextPath = sanitizeRedirectPath(searchParams.get("next"), "/profile");
   const callbackError = searchParams.get("error");
   const { lang, showToast } = useApp();
 

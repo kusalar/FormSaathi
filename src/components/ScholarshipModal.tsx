@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import {
   X,
@@ -24,6 +24,17 @@ export function ScholarshipModal() {
     savedScholarships,
     toggleSaveScholarship,
   } = useApp();
+
+  useEffect(() => {
+    if (!selectedScholarship) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedScholarship(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedScholarship, setSelectedScholarship]);
 
   if (!selectedScholarship) return null;
 

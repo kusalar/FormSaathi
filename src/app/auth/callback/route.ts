@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeRedirectPath } from "@/lib/supabase/redirect";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const authError = searchParams.get("error");
-  const rawNext = searchParams.get("next") ?? "/profile";
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/profile";
+  const next = sanitizeRedirectPath(searchParams.get("next"), "/profile");
 
   if (authError) {
     return NextResponse.redirect(`${origin}/login?error=link_expired`);

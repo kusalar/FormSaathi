@@ -23,11 +23,13 @@
   4. FormSaathi asks the remaining questions **one at a time** (Institution Type → Family Income → State).
   5. Select `Government`, `₹5 Lakh – ₹8 Lakh`, and `West Bengal`.
 
-### 1:50 – 2:30 | Personalised Discovery (Scholarships, Internships, Jobs & Hackathons)
-- **Show**: FormSaathi's **Opportunities For You (`/opportunities`)** and **Find Scholarships (`/scholarships`)**:
-  1. Switch between **Internships** (Live Himalayas + Official Indian portals), **Jobs** (Live + Fresher-Friendly / Graduate Trainee), and **Hackathons & Competitions** (Live Devpost API + SIH / Microsoft / Google / AWS / MLH Official Directories).
-  2. Highlight clear **LIVE API**, **OFFICIAL DIRECTORY**, **NEEDS VERIFICATION**, and **DEMO** badges, plus **Save** and **Track Status** (`Interested`, `Applied`, `Notes`).
-  3. Open **Document Checklist (`/documents`)** and check off documents to show live progress tracking.
+### 1:50 – 2:30 | Unified Intelligence & Personalised Discovery (`/recommendations` & `/opportunities`)
+- **Show**:
+  1. Start on the Home Dashboard (`/`), scroll to **Your Opportunity Feed** showing 5 diversified top matches across scholarships, internships, jobs, hackathons, and student leadership.
+  2. Click **Explore all recommendations** to open **`/recommendations`** (*Opportunities For You*).
+  3. Switch between intelligent sections (**Best Matches For You**, **Closing Soon**, **Scholarships You May Qualify For**, **Build Your Career**, **Build Your Portfolio**) and expand **Details** on any card to show transparent preliminary match reasons, verification checklist, and **Save / Track Status** (`Interested`, `Applied`, `Notes`).
+  4. Also show **`/opportunities`** for category-specific directory browsing (Live Himalayas, Remotive, Devpost API, and Official Indian Portals with clear **LIVE API**, **OFFICIAL SOURCE**, **OFFICIAL DIRECTORY**, and **DEMO** badges).
+  5. Open **Document Checklist (`/documents`)** and check off documents to show live progress tracking.
 
 ### 2:30 – 3:00 | Social Impact & Closing
 - **Say**: *"FormSaathi turns an intimidating, multi-page form process into a friendly, trustworthy 2-minute conversation—empowering first-generation learners across Bharat to check eligibility, prepare documents safely, and apply with confidence on official portals."*

@@ -21,6 +21,7 @@ import {
   LogOut,
   CloudUpload,
   Compass,
+  Sparkles,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { LANGUAGE_META, t, UI_TEXT } from "@/lib/i18n";
@@ -46,6 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: "/", icon: Home, label: t(UI_TEXT.nav.home, lang) },
+    { href: "/recommendations", icon: Sparkles, label: t(UI_TEXT.nav.recommendations, lang) },
     { href: "/opportunities", icon: Compass, label: t(UI_TEXT.nav.opportunities, lang) },
     { href: "/profile", icon: User, label: t(UI_TEXT.nav.profile, lang) },
     { href: "/scholarships", icon: GraduationCap, label: t(UI_TEXT.nav.scholarships, lang) },

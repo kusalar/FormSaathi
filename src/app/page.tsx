@@ -18,6 +18,7 @@ import {
   ChevronUp,
   ShieldAlert,
   Radio,
+  Bookmark,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { SCHOLARSHIPS, evaluateEligibility } from "@/lib/scholarships";
@@ -30,6 +31,14 @@ import { OFFICIAL_INDIAN_JOB_SOURCES } from "@/lib/opportunities/providers/india
 import { OFFICIAL_COMPETITION_DIRECTORIES } from "@/lib/opportunities/competitions/providers/officialDirectories";
 import { matchCompetition } from "@/lib/opportunities/competitions/matcher";
 import { matchOpportunity } from "@/lib/opportunities/matcher";
+import {
+  getDiversifiedDashboardFeed,
+  rankUnifiedOpportunities,
+} from "@/lib/opportunities/unified/rank";
+import {
+  RankedUnifiedOpportunity,
+  UnifiedRecommendationsResponse,
+} from "@/lib/opportunities/unified/types";
 import { Opportunity } from "@/types";
 import { t, UI_TEXT } from "@/lib/i18n";
 import { AssistantWidget } from "@/components/AssistantWidget";
@@ -42,14 +51,64 @@ export default function HomePage() {
     profileCompleteness,
     docProgress,
     savedScholarships,
+    toggleSaveScholarship,
     applicationTracking,
     activities,
     setSelectedScholarship,
     sendMessage,
+    showToast,
   } = useApp();
 
   const [tipIndex, setTipIndex] = useState(0);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [unifiedFeed, setUnifiedFeed] = useState<{
+    items: RankedUnifiedOpportunity[];
+    loading: boolean;
+    error: string | null;
+  }>({
+    items: [],
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/recommendations")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!active) return;
+        const payload = data as UnifiedRecommendationsResponse;
+        if (!ok || !payload.ok || !Array.isArray(payload.items)) {
+          setUnifiedFeed({
+            items: [],
+            loading: false,
+            error: "Unable to load unified recommendations right now.",
+          });
+          return;
+        }
+        const ranked = rankUnifiedOpportunities(
+          payload.items,
+          profile,
+          payload.todayIso
+        );
+        setUnifiedFeed({
+          items: getDiversifiedDashboardFeed(ranked, 5),
+          loading: false,
+          error: null,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setUnifiedFeed({
+          items: [],
+          loading: false,
+          error: "Unable to load unified recommendations right now.",
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [profile]);
   const [liveInternship, setLiveInternship] = useState<{
     opp: Opportunity | null;
     isLive: boolean;
@@ -948,6 +1007,110 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+          </section>
+
+          {/* Unified Your Opportunity Feed (Phase 5.6) */}
+          <section className="rounded-3xl bg-white border border-indigo-100 shadow-sm p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-700 mb-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Unified Intelligence Engine
+                </div>
+                <h2 className="text-lg font-extrabold text-indigo-950">
+                  Your Opportunity Feed
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Top diversified matches across scholarships, internships, jobs, hackathons, and leadership — preliminary guidance only.
+                </p>
+              </div>
+              <Link
+                href="/recommendations"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 shrink-0"
+              >
+                Explore all recommendations
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {unifiedFeed.loading ? (
+              <p className="text-xs text-slate-500 py-4">
+                Ranking your personalised opportunities...
+              </p>
+            ) : unifiedFeed.error || unifiedFeed.items.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4">
+                {unifiedFeed.error || "Open Opportunities For You to browse all recommendations."}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {unifiedFeed.items.map((item) => {
+                  const isSaved = savedScholarships.includes(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full bg-white border border-indigo-200 px-2 py-0.5 text-[10px] font-bold uppercase text-indigo-800">
+                            {item.category}
+                          </span>
+                          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            {item.match.percentage}% Match
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                            {item.dataSourceType}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-indigo-950 truncate">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-slate-600 truncate">
+                          {item.organisation} • {item.stipendOrReward}
+                          {item.deadline ? ` • Deadline: ${item.deadline}` : ""}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {item.match.summary}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toggleSaveScholarship(item.id);
+                            showToast(
+                              isSaved ? "Removed from saved" : "Saved opportunity",
+                              item.title,
+                              "info"
+                            );
+                          }}
+                          className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold border cursor-pointer ${
+                            isSaved
+                              ? "bg-indigo-100 text-indigo-800 border-indigo-300"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          <Bookmark
+                            className={`w-3.5 h-3.5 ${isSaved ? "fill-indigo-700" : ""}`}
+                          />
+                          {isSaved ? "Saved" : "Save"}
+                        </button>
+                        {(item.applicationUrl || item.officialSourceUrl) && (
+                          <a
+                            href={item.applicationUrl || item.officialSourceUrl || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                          >
+                            Portal →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Recent Activity Section */}

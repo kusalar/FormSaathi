@@ -154,6 +154,17 @@ All illustrations are stored locally under `public/images/` and `public/assets/`
 - Browser `SpeechRecognition` depends on browser/OS support (works best in Chrome/Edge; unsupported browsers automatically use the text input fallback).
 - Scholarship data is currently a local demonstration dataset (`isDemo: true`) rather than a live government API feed.
 
+## Phase 5.6: Unified Personalised Opportunity Intelligence Engine
+
+- **Unified Adapter & Engine (`src/lib/opportunities/unified/`)**:
+  - Normalizes scholarships (`NormalizedScholarship`), internships, jobs, hackathons, competitions, fellowships, research, and student ambassador programmes (`Opportunity`) into a single `UnifiedOpportunity` model.
+  - Deduplicates overlapping listings across providers (`deduplicate.ts`) while preserving higher-trust / non-demo records.
+  - Ranks opportunities deterministically (`rank.ts` + `explain.ts`) using student profile fields (course, branch, year, state, income, institution type, skills, preferences) and deadline urgency, generating plain-language preliminary match explanations.
+- **API Route (`GET /api/recommendations`)**: Aggregates `fetchAllScholarships`, `fetchAllInternships`, `fetchAllJobs`, and `fetchAllCompetitions` via `Promise.allSettled` with 5-minute caching and partial-failure isolation.
+- **Unified Feed (`/recommendations`) & Dashboard Feed**: Displays personalised sections (*Best Matches For You*, *Closing Soon*, *Recently Added*, *Scholarships You May Qualify For*, *Build Your Career*, *Build Your Portfolio*, *Student Leadership*, *Explore Beyond Your Branch*), unified filters, Save & Application Tracking, and a diversified **Your Opportunity Feed** on `/`.
+
+---
+
 ## Future Improvements
 
 - Integration with verified, curated official state and central scholarship feeds.

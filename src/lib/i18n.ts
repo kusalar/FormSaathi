@@ -17,6 +17,11 @@ export const UI_TEXT = {
   },
   nav: {
     home: { en: "Home", hi: "होम", bn: "হোম" },
+    recommendations: {
+      en: "For You",
+      hi: "आपके लिए",
+      bn: "আপনার জন্য",
+    },
     opportunities: {
       en: "Opportunities For You",
       hi: "आपके लिए अवसर",
