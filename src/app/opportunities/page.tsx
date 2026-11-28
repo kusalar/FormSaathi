@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Compass,
   Search,
@@ -42,11 +43,41 @@ type TabType =
   | "all"
   | "scholarship"
   | "internship"
+  | "research"
   | "job"
   | "competition"
   | "saved"
   | "history";
 type DomainFilterType = "all" | "indian_official" | EngineeringDomainType;
+
+const VALID_TABS = new Set<TabType>([
+  "all",
+  "scholarship",
+  "internship",
+  "research",
+  "job",
+  "competition",
+  "saved",
+  "history",
+]);
+
+function isResearchOpportunity(opp: Opportunity): boolean {
+  if (opp.category === "research" || opp.category === "fellowship") return true;
+  if (opp.engineeringDomain === "research") return true;
+  if (
+    opp.competitionSubCategory === "research_competition" ||
+    opp.competitionSubCategory === "fellowship"
+  ) {
+    return true;
+  }
+  const text = `${opp.title} ${opp.description}`.toLowerCase();
+  return (
+    text.includes("research intern") ||
+    text.includes("summer research") ||
+    text.includes("research fellowship") ||
+    text.includes("undergraduate research")
+  );
+}
 
 const STATUS_OPTIONS: Array<{ value: ApplicationTrackingStatus; label: string }> = [
   { value: "interested", label: "Interested" },
@@ -67,7 +98,22 @@ interface LiveInternshipsState {
   page: number;
 }
 
-export default function OpportunitiesPage() {
+function OpportunitiesContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawCategory = searchParams.get("category") as TabType | null;
+  const tab: TabType =
+    rawCategory && VALID_TABS.has(rawCategory) ? rawCategory : "internship";
+
+  const handleSelectTab = useCallback(
+    (nextTab: TabType) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("category", nextTab);
+      router.push(`/opportunities?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
+
   const {
     profile,
     profileCompleteness,
@@ -114,7 +160,6 @@ export default function OpportunitiesPage() {
   });
 
   const [todayIso, setTodayIso] = useState<string | undefined>(undefined);
-  const [tab, setTab] = useState<TabType>("internship");
   const [domainFilter, setDomainFilter] = useState<DomainFilterType>("all");
   const [jobCategoryFilter, setJobCategoryFilter] = useState<"all" | JobCategoryGroup>("all");
   const [experienceFilter, setExperienceFilter] = useState<"all" | ExperienceClassification>("all");
@@ -311,6 +356,7 @@ export default function OpportunitiesPage() {
       total: activeMatching.length,
       scholarship: activeMatching.filter((i) => i.opp.category === "scholarship").length,
       internship: activeMatching.filter((i) => i.opp.category === "internship").length,
+      research: activeMatching.filter((i) => isResearchOpportunity(i.opp)).length,
       job: activeMatching.filter((i) => i.opp.category === "job").length,
       competition: activeMatching.filter((i) =>
         ["hackathon", "competition", "ambassador", "fellowship"].includes(i.opp.category)
@@ -334,6 +380,9 @@ export default function OpportunitiesPage() {
         (tab === "scholarship" || tab === "internship" || tab === "job") &&
         opp.category !== tab
       ) {
+        return false;
+      }
+      if (tab === "research" && !isResearchOpportunity(opp)) {
         return false;
       }
       if (
@@ -594,6 +643,7 @@ export default function OpportunitiesPage() {
           {(
             [
               { id: "internship", label: `Internships (${counts.internship})` },
+              { id: "research", label: `Researchships & Fellowships (${counts.research})` },
               { id: "job", label: `Jobs (${counts.job})` },
               { id: "competition", label: `Hackathons & Competitions (${counts.competition})` },
               { id: "all", label: "All Open" },
@@ -605,7 +655,7 @@ export default function OpportunitiesPage() {
             <button
               key={tItem.id}
               type="button"
-              onClick={() => setTab(tItem.id)}
+              onClick={() => handleSelectTab(tItem.id)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition ${
                 tab === tItem.id
                   ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs"
@@ -1211,5 +1261,19 @@ export default function OpportunitiesPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function OpportunitiesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-sm text-slate-500">
+          Loading opportunities...
+        </div>
+      }
+    >
+      <OpportunitiesContent />
+    </Suspense>
   );
 }

@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Home,
   User,
   GraduationCap,
+  Award,
+  Briefcase,
+  BriefcaseBusiness,
+  FlaskConical,
   CheckSquare,
   FileText,
   Mic,
@@ -27,6 +31,63 @@ import { useApp } from "@/context/AppContext";
 import { LANGUAGE_META, t, UI_TEXT } from "@/lib/i18n";
 import { Language } from "@/types";
 
+interface NavItemConfig {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  matchCategory?: string;
+}
+
+const DIRECT_OPPORTUNITY_CATEGORIES = new Set([
+  "scholarship",
+  "internship",
+  "research",
+  "job",
+]);
+
+function SidebarNavLinks({
+  navItems,
+  pathname,
+  onNavigate,
+}: {
+  navItems: NavItemConfig[];
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const currentCategory = searchParams.get("category");
+
+  return (
+    <>
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const active = item.matchCategory
+          ? pathname === "/opportunities" && currentCategory === item.matchCategory
+          : item.href === "/opportunities"
+          ? pathname === "/opportunities" &&
+            !DIRECT_OPPORTUNITY_CATEGORIES.has(currentCategory || "")
+          : pathname === item.href;
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 px-3.5 py-2 rounded-2xl text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-violet-400 ${
+              active
+                ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-950/40"
+                : "text-indigo-100/85 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -45,10 +106,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const navItems = [
+  const navItems: NavItemConfig[] = [
     { href: "/", icon: Home, label: t(UI_TEXT.nav.home, lang) },
     { href: "/recommendations", icon: Sparkles, label: t(UI_TEXT.nav.recommendations, lang) },
     { href: "/opportunities", icon: Compass, label: t(UI_TEXT.nav.opportunities, lang) },
+    {
+      href: "/opportunities?category=scholarship",
+      icon: Award,
+      label: t(UI_TEXT.nav.findScholarships, lang),
+      matchCategory: "scholarship",
+    },
+    {
+      href: "/opportunities?category=internship",
+      icon: BriefcaseBusiness,
+      label: t(UI_TEXT.nav.findInternships, lang),
+      matchCategory: "internship",
+    },
+    {
+      href: "/opportunities?category=research",
+      icon: FlaskConical,
+      label: t(UI_TEXT.nav.findResearch, lang),
+      matchCategory: "research",
+    },
+    {
+      href: "/opportunities?category=job",
+      icon: Briefcase,
+      label: t(UI_TEXT.nav.findJobs, lang),
+      matchCategory: "job",
+    },
     { href: "/profile", icon: User, label: t(UI_TEXT.nav.profile, lang) },
     { href: "/scholarships", icon: GraduationCap, label: t(UI_TEXT.nav.scholarships, lang) },
     { href: "/eligibility", icon: CheckSquare, label: t(UI_TEXT.nav.eligibility, lang) },
@@ -77,25 +162,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Navigation Links */}
       <nav aria-label="Primary Navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileNavOpen(false)}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-violet-400 ${
-                active
-                  ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-950/40"
-                  : "text-indigo-100/85 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
+        <Suspense fallback={null}>
+          <SidebarNavLinks
+            navItems={navItems}
+            pathname={pathname}
+            onNavigate={() => setMobileNavOpen(false)}
+          />
+        </Suspense>
       </nav>
 
       {/* Bottom Patriotic EdTech Motif */}

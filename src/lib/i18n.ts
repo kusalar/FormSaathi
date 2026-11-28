@@ -27,6 +27,26 @@ export const UI_TEXT = {
       hi: "आपके लिए अवसर",
       bn: "আপনার জন্য সুযোগ",
     },
+    findScholarships: {
+      en: "Find Scholarships",
+      hi: "छात्रवृत्ति खोजें",
+      bn: "বৃত্তি খুঁজুন",
+    },
+    findInternships: {
+      en: "Find Internships",
+      hi: "इंटर्नशिप खोजें",
+      bn: "ইন্টার্নশিপ খুঁজুন",
+    },
+    findResearch: {
+      en: "Research & Fellowships",
+      hi: "रिसर्च और फ़ेलोशिप",
+      bn: "রিসার্চ ও ফেলোশিপ",
+    },
+    findJobs: {
+      en: "Find Jobs",
+      hi: "नौकरी खोजें",
+      bn: "চাকরি খুঁজুন",
+    },
     profile: { en: "My Profile", hi: "मेरी प्रोफ़ाइल", bn: "আমার প্রোফাইল" },
     scholarships: { en: "Find Scholarships", hi: "छात्रवृत्ति खोजें", bn: "বৃত্তি খুঁজুন" },
     eligibility: { en: "Eligibility Check", hi: "पात्रता जांच", bn: "যোগ্যতা যাচাই" },
