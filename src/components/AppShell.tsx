@@ -24,7 +24,6 @@ import {
   LogIn,
   LogOut,
   CloudUpload,
-  Compass,
   Sparkles,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
@@ -37,13 +36,6 @@ interface NavItemConfig {
   label: string;
   matchCategory?: string;
 }
-
-const DIRECT_OPPORTUNITY_CATEGORIES = new Set([
-  "scholarship",
-  "internship",
-  "research",
-  "job",
-]);
 
 function SidebarNavLinks({
   navItems,
@@ -63,9 +55,6 @@ function SidebarNavLinks({
         const Icon = item.icon;
         const active = item.matchCategory
           ? pathname === "/opportunities" && currentCategory === item.matchCategory
-          : item.href === "/opportunities"
-          ? pathname === "/opportunities" &&
-            !DIRECT_OPPORTUNITY_CATEGORIES.has(currentCategory || "")
           : pathname === item.href;
 
         return (
@@ -109,7 +98,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems: NavItemConfig[] = [
     { href: "/", icon: Home, label: t(UI_TEXT.nav.home, lang) },
     { href: "/recommendations", icon: Sparkles, label: t(UI_TEXT.nav.recommendations, lang) },
-    { href: "/opportunities", icon: Compass, label: t(UI_TEXT.nav.opportunities, lang) },
     {
       href: "/opportunities?category=scholarship",
       icon: Award,
